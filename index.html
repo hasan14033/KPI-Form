@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KPI Importance Form</title>
+<style>
+/* Layout concept: one calm column of numbered steps; the answer buttons are the main object, everything else stays quiet. */
+:root{
+  --bg:#f3f6f6; --surface:#ffffff; --surface-2:#eaf0f0; --ink:#14262b; --muted:#52666b; --line:#cfdbdc;
+  --accent:#0b6b6a; --accent-ink:#ffffff; --accent-soft:#d6eeec;
+  --ok:#1b7443; --ok-soft:#dcf2e5; --warn:#8f5200; --warn-soft:#fbeccd; --bad:#a3302b; --bad-soft:#f8dddb;
+  --off:#7d8f93;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Noto Sans Devanagari",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1a1c; --surface:#152225; --surface-2:#1b2d31; --ink:#e5efef; --muted:#9db3b6; --line:#2a4146;
+    --accent:#4fc4c0; --accent-ink:#052321; --accent-soft:#163a3b;
+    --ok:#62d08c; --ok-soft:#14301f; --warn:#f0b45c; --warn-soft:#3a2a0e; --bad:#f2918b; --bad-soft:#3b1816;
+    --off:#5d7478; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1a1c; --surface:#152225; --surface-2:#1b2d31; --ink:#e5efef; --muted:#9db3b6; --line:#2a4146;
+  --accent:#4fc4c0; --accent-ink:#052321; --accent-soft:#163a3b;
+  --ok:#62d08c; --ok-soft:#14301f; --warn:#f0b45c; --warn-soft:#3a2a0e; --bad:#f2918b; --bad-soft:#3b1816;
+  --off:#5d7478; color-scheme:dark;
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--font);padding-inline:16px;padding-block:20px 64px;font-variant-numeric:tabular-nums}
+.wrap{max-width:760px;margin-inline:auto;display:grid;gap:16px}
+h1{font-size:26px;line-height:1.2;margin:0;text-wrap:balance}
+h2{font-size:18px;line-height:1.3;margin:0;text-wrap:balance}
+h3{font-size:15px;margin:0 0 2px}
+p{margin:0}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.lede{color:var(--muted);max-width:62ch}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+button{font:inherit;color:inherit}
+button,input,select,textarea{min-width:0}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.head{display:grid;gap:8px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px;min-width:0}
+.step.locked{opacity:.6}
+.step-h{display:flex;gap:12px;align-items:center}
+.n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:14px}
+.step-h h2{flex:1}
+.chip{flex:none;font-size:12px;font-weight:600;padding:2px 10px;border-radius:99px;background:var(--surface-2);color:var(--muted)}
+.chip.done{background:var(--ok-soft);color:var(--ok)}
+.chip.todo{background:var(--warn-soft);color:var(--warn)}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.row2{grid-template-columns:1fr}}
+label.f{display:grid;gap:4px;font-size:14px;font-weight:600;min-width:0}
+input[type=text],select,textarea{width:100%;font:inherit;font-weight:400;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
+textarea{font-family:var(--mono);font-size:12px;line-height:1.5;white-space:pre;overflow:auto;resize:vertical}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;font-size:14px}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.45;cursor:not-allowed;filter:none}
+.btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:8px}
+.kpi{position:relative;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 12px;min-height:64px;cursor:pointer;display:grid;gap:2px;align-content:start}
+.kpi:hover{background:var(--surface-2)}
+.kpi b{font-size:17px}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);cursor:default}
+.kpi .rk{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:13px;font-weight:700}
+.order{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.order .o{background:var(--surface-2);border-radius:99px;padding:3px 10px;font-size:14px}
+.order .o i{font-style:normal;color:var(--muted);margin-right:4px}
+
+.legend{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;font-size:12px;color:var(--muted)}
+.legend div{background:var(--surface-2);border-radius:6px;padding:6px 4px;text-align:center}
+.legend b{display:block;color:var(--ink);font-size:15px}
+.pair{padding-block:12px;border-top:1px solid var(--line);display:grid;gap:8px}
+.pair:first-of-type{border-top:0}
+.pair-q{display:grid;gap:0}
+.pair-q small{color:var(--muted);font-size:13px}
+.opts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.opt{border:1px solid var(--line);background:var(--surface);border-radius:8px;min-height:58px;padding:4px 2px;cursor:pointer;display:grid;place-items:center;align-content:center;gap:0;line-height:1.15}
+.opt strong{font-size:21px}
+.opt span{font-size:11px;color:var(--muted)}
+.opt:hover{background:var(--surface-2)}
+.opt[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.opt[aria-pressed="true"] span{color:var(--accent-ink)}
+.opt[aria-disabled="true"]{border-style:dashed;background:transparent;color:var(--off);cursor:not-allowed}
+.opt[aria-disabled="true"] strong{text-decoration:line-through}
+.opt[aria-disabled="true"] span{color:var(--off)}
+.opt.only{box-shadow:0 0 0 2px var(--accent) inset}
+.why{font-size:14px;color:var(--warn);background:var(--warn-soft);padding:8px 10px;border-radius:6px}
+.only-note{font-size:13px;color:var(--muted)}
+.notice{font-size:14px;background:var(--warn-soft);color:var(--warn);padding:8px 12px;border-radius:8px}
+.confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--warn-soft);color:var(--warn);padding:8px 12px;border-radius:8px;font-size:14px}
+.part{display:grid;gap:2px;padding-top:4px}
+.part p{font-size:14px;color:var(--muted)}
+
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.scroll{overflow-x:auto}
+.pass{color:var(--ok);font-weight:700}
+.fail{color:var(--bad);font-weight:700}
+.banner{padding:10px 12px;border-radius:8px;font-size:14px}
+.banner.ok{background:var(--ok-soft);color:var(--ok)}
+.banner.bad{background:var(--bad-soft);color:var(--bad)}
+
+details.setup{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0}
+details.setup>summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+details.setup>summary::-webkit-details-marker{display:none}
+details.setup>summary span{font-weight:400;color:var(--muted);font-size:14px}
+.setup-body{padding:4px 16px 16px;display:grid;gap:14px;border-top:1px solid var(--line)}
+.kpi-edit{display:grid;grid-template-columns:110px 1fr;gap:8px}
+@media (max-width:480px){.kpi-edit{grid-template-columns:90px 1fr}}
+.radio{display:flex;gap:16px;flex-wrap:wrap;font-size:14px}
+.radio label{display:flex;gap:6px;align-items:center}
+.how{font-size:14px;color:var(--muted);display:grid;gap:4px;padding-left:18px;margin:0}
+@media (prefers-reduced-motion:no-preference){.opt,.kpi,.btn{transition:background .12s,border-color .12s}}
+</style>
+</head>
+<body>
+
+
+
+<script>
+/* ===== EDIT HERE BEFORE HOSTING =====
+   sheetUrl : the Web app URL from Google Apps Script (ends in /exec). Leave '' to run without Google Sheets.
+   sheetKey : the same key you set in the Apps Script (KEY).
+   kpis     : leave null for the defaults, or give {"Seller":[["DRI","full name"],...5 items],"Buyer":[...],"Service provider":[...]}.
+   mode     : 'guided' or 'free'.   tol : 0, 1 or 2 (product tolerance). */
+window.KPI_CONFIG={sheetUrl:'https://script.google.com/macros/s/AKfycbxdt5is8X7Xq5QPaN4wy66yTr9Z9tMcWjvmDdwZOoERMcb5zc7oPLPGGxfA-abrF-ey/exec',sheetKey:'GeMIITD#2026',mode:'guided',tol:1,kpis:null};
+</script>
+<div class="wrap">
+  <header class="head">
+    <div class="eyebrow">Stakeholder consultation</div>
+    <h1>KPI importance form</h1>
+    <p class="lede">Rank the KPIs, then say how much more important one is than another. Numbers that would contradict your earlier answers are greyed out, so every finished form is consistent.</p>
+  </header>
+
+  <details class="setup" id="setup">
+    <summary>Facilitator setup <span id="setupSummary"></span></summary>
+    <div class="setup-body">
+      <div>
+        <h3>Check mode</h3>
+        <div class="radio" role="radiogroup" aria-label="Check mode">
+          <label><input type="radio" name="mode" value="guided" id="modeGuided"> Guided: only consistent numbers can be chosen</label>
+          <label><input type="radio" name="mode" value="free" id="modeFree"> Free: any number, problems are reported at the end</label>
+        </div>
+      </div>
+      <label class="f" style="max-width:320px">Product tolerance (plus or minus)
+        <select id="tol"><option value="0">0 (exact products only)</option><option value="1">1 (default)</option><option value="2">2</option></select>
+        <span class="small muted" style="font-weight:400">For each KPI the two numbers multiplied should land within this distance of the Best-vs-Worst answer. The paper sets no tolerance, so this is the study team's choice.</span>
+      </label>
+      <div>
+        <h3>KPIs for <span id="setupGroup"></span></h3>
+        <p class="small muted" style="margin-bottom:8px">Use the same names, in the same order, in the calculator's Settings sheet. Edits are saved in this browser and shared with other devices when the shared database is on.</p>
+        <div id="kpiEdit" style="display:grid;gap:8px"></div>
+      </div>
+      <div class="btns">
+        <button class="btn" id="fillExample" type="button">Fill example answers</button>
+        <button class="btn" id="resetSetup" type="button">Reset setup to defaults</button>
+      </div>
+      <div id="sheetBox" hidden>
+        <div class="btns"><button class="btn" id="sendTest" type="button">Send test row to Google Sheet</button><span class="small muted" id="testNote"></span></div>
+        <p class="small muted" style="margin-top:6px">Writes one row to a tab called TEST. Delete that tab afterwards.</p>
+      </div>
+    </div>
+  </details>
+
+  <section class="step" id="s1">
+    <div class="step-h"><div class="n">1</div><h2>Respondent</h2></div>
+    <div class="row2">
+      <label class="f" for="rid">Respondent ID<input type="text" id="rid" autocomplete="off" placeholder="e.g. S-01"></label>
+      <label class="f" for="grp">Group<select id="grp"><option>Buyer</option><option selected>Seller</option><option>Service provider</option></select></label>
+    </div>
+  </section>
+
+  <section class="step" id="s2"></section>
+  <section class="step" id="s3"></section>
+  <section class="step" id="s4"></section>
+  <section class="step" id="s5"></section>
+
+  <section class="step" id="s6">
+    <div class="step-h"><div class="n" style="background:var(--surface-2);color:var(--muted)">&#8721;</div><h2>Saved responses</h2><span class="chip" id="savedCount">0</span></div>
+    <div id="savedBody"></div>
+  </section>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* LOGIC:BEGIN */
+const S=5;
+function buildSets(t){
+  const full=[],noDir=[],noProd=[];
+  for(let A=1;A<=S;A++){
+    const vs=[];for(let v=1;v<=A;v++)vs.push(v);
+    for(const b of vs)for(const c of vs)for(const d of vs)for(const e of vs)for(const f of vs)for(const g of vs){
+      const dir=b<=c&&c<=d&&e>=f&&f>=g;
+      const prod=Math.abs(b*e-A)<=t&&Math.abs(c*f-A)<=t&&Math.abs(d*g-A)<=t;
+      const rec=[A,b,c,d,e,f,g];
+      if(dir&&prod)full.push(rec);
+      if(prod)noDir.push(rec);
+      if(dir)noProd.push(rec);
+    }
+  }
+  return {full,noDir,noProd};
+}
+function match(rec,fixed){for(let i=0;i<7;i++){if(fixed[i]!=null&&rec[i]!==fixed[i])return false;}return true;}
+function feasible(sets,vals){return sets.full.some(r=>match(r,vals));}
+function fixedFor(vals,cell){return vals.map((v,i)=>i===cell?null:(vals[cell]!=null&&i>cell?null:v));}
+function allowedValues(sets,vals,cell){
+  const fixed=fixedFor(vals,cell),s=new Set();
+  for(const r of sets.full)if(match(r,fixed))s.add(r[cell]);
+  return [...s].sort((a,b)=>a-b);
+}
+function reasonFor(sets,vals,cell,v){
+  const A=vals[0];
+  if(cell>0&&A!=null&&v>A)return 'cap';
+  const fixed=fixedFor(vals,cell);fixed[cell]=v;
+  const p=sets.noProd.some(r=>match(r,fixed)),d=sets.noDir.some(r=>match(r,fixed));
+  if(p&&!d)return 'product';
+  if(d&&!p)return 'order';
+  return 'both';
+}
+function repair(sets,vals,cell){
+  const cleared=[];
+  while(!feasible(sets,vals)){
+    let j=-1;for(let i=6;i>cell;i--)if(vals[i]!=null){j=i;break;}
+    if(j<0)break;
+    vals[j]=null;cleared.push(j);
+  }
+  return cleared;
+}
+function runChecks(vals,t){
+  const A=vals[0],b=vals[1],c=vals[2],d=vals[3],e=vals[4],f=vals[5],g=vals[6];
+  const prod=[[b,e],[c,f],[d,g]].map(function(p){return {x:p[0],y:p[1],p:p[0]*p[1],lo:A-t,hi:A+t,ok:Math.abs(p[0]*p[1]-A)<=t};});
+  const r={cap:vals.slice(1).every(function(v){return v<=A;}),up:b<=c&&c<=d,low:e>=f&&f>=g,prod:prod};
+  r.ok=r.cap&&r.up&&r.low&&prod.every(function(p){return p.ok;});
+  return r;
+}
+/* LOGIC:END */
+
+const LABEL=['','Equal','Slight','Moderate','Strong','Extreme'];
+const DEFAULT_GROUPS=['Buyer','Seller','Service provider'];
+function defaultKpis(){
+  return {
+    'Seller':[['DRI',''],['SOCR',''],['WAI',''],['SOR',''],['PQP','']],
+    'Buyer':[1,2,3,4,5].map(function(i){return ['Buyer KPI '+i,''];}),
+    'Service provider':[1,2,3,4,5].map(function(i){return ['Provider KPI '+i,''];})
+  };
+}
+const $=function(id){return document.getElementById(id);};
+const esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+function lsGet(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+const CFG=window.KPI_CONFIG||{};
+const SHEET_URL=String(CFG.sheetUrl||'').trim();
+const SHEET_KEY=String(CFG.sheetKey||'');
+const HASH=(location.hash||'').toLowerCase().replace('#','');
+const RESPONDENT=!!SHEET_URL&&HASH!=='admin';
+const HASH_GROUP={seller:'Seller',buyer:'Buyer',provider:'Service provider','service-provider':'Service provider'}[HASH]||null;
+function validKpis(k){
+  if(!k||typeof k!=='object')return {};
+  const out={};
+  DEFAULT_GROUPS.forEach(function(g){
+    if(Array.isArray(k[g])&&k[g].length===5&&k[g].every(function(x){return Array.isArray(x)&&typeof x[0]==='string'&&x[0].trim();}))out[g]=k[g].map(function(x){return [String(x[0]),String(x[1]||'')];});
+  });
+  return out;
+}
+const setup=RESPONDENT?{}:(lsGet('kif.setup.v1')||{});
+const state={
+  group:HASH_GROUP||'Seller',
+  mode:(CFG.mode||setup.mode)==='free'?'free':'guided',
+  tol:[0,1,2].indexOf(CFG.tol)>=0?CFG.tol:([0,1,2].indexOf(setup.tol)>=0?setup.tol:1),
+  kpis:Object.assign(defaultKpis(),setup.kpis||{},validKpis(CFG.kpis)),
+  ranking:[],vals:[null,null,null,null,null,null,null],
+  notice:'',reason:null,confirm:null,demo:false,justSaved:false,
+  local:Array.isArray(lsGet('kif.saved.v1'))?lsGet('kif.saved.v1'):[],
+  remote:null,db:null,lastRec:null,sheetErr:'',dbErr:'',canWrite:null,saving:false,saveNote:'',viewGroup:'All',uploadNote:''
+};
+let SETS=buildSets(state.tol);
+
+let setupChain=Promise.resolve(),setupTimer=null;
+function pushSetup(){
+  if(!state.db||state.canWrite===false)return;
+  clearTimeout(setupTimer);
+  setupTimer=setTimeout(function(){
+    const body=JSON.parse(JSON.stringify({kpis:state.kpis,mode:state.mode,tol:state.tol}));
+    setupChain=setupChain.then(function(){return state.db.doc('config/setup').set(body);}).catch(function(){});
+  },800);
+}
+function persistSetup(){lsSet('kif.setup.v1',{mode:state.mode,tol:state.tol,kpis:state.kpis});pushSetup();}
+function list(){return state.db?(state.remote||[]):state.local;}
+function shown(){return list().filter(function(r){return state.viewGroup==='All'||r.group===state.viewGroup;});}
+function kp(i){return state.kpis[state.group][i];}
+function name(i){return kp(i)[0];}
+function rankName(r){return name(state.ranking[r]);}
+function rankingDone(){return state.ranking.length===5;}
+function anyAnswers(){return state.vals.some(function(v){return v!=null;});}
+function allAnswers(){return state.vals.every(function(v){return v!=null;});}
+
+/* cells: 0 = rank1 vs rank5; 1-3 = rank1 vs rank2..4; 4-6 = rank2..4 vs rank5 */
+function cellPair(cell){
+  if(cell===0)return [0,4];
+  if(cell<=3)return [0,cell];
+  return [cell-3,4];
+}
+function allowed(cell){
+  if(state.mode==='free')return [1,2,3,4,5];
+  return allowedValues(SETS,state.vals,cell);
+}
+
+function resetAnswers(){state.vals=[null,null,null,null,null,null,null];state.reason=null;state.notice='';}
+function clearForm(){state.ranking=[];resetAnswers();state.confirm=null;state.demo=false;state.justSaved=false;state.saveNote='';}
+
+function pick(cell,v){
+  state.justSaved=false;state.saveNote='';
+  const ok=allowed(cell);
+  if(ok.indexOf(v)<0){
+    const why=reasonFor(SETS,state.vals,cell,v);
+    state.reason={cell:cell,v:v,why:why};
+    renderAnswers();return;
+  }
+  state.reason=null;state.notice='';
+  if(state.vals[cell]===v){
+    state.vals[cell]=null;
+    if(cell===0&&state.vals.some(function(x){return x!=null;})){state.vals=[null,null,null,null,null,null,null];state.notice='Your Best vs Worst answer changed, so the other comparisons were cleared.';}
+  }else{
+    const hadOthers=state.vals.some(function(x,i){return i!==cell&&x!=null;});
+    state.vals[cell]=v;
+    if(cell===0){
+      if(hadOthers){state.vals=[v,null,null,null,null,null,null];state.notice='Your Best vs Worst answer changed, so the other comparisons were cleared. Please answer them again.';}
+    }else if(state.mode==='guided'){
+      const cleared=repair(SETS,state.vals,cell);
+      if(cleared.length){
+        state.notice='Cleared '+cleared.length+' later answer'+(cleared.length>1?'s':'')+' that no longer fit: '+cleared.sort().map(function(c){return pairText(c);}).join('; ')+'. Please answer again.';
+      }
+    }
+  }
+  renderAnswers();renderReview();
+}
+function pairText(cell){const p=cellPair(cell);return rankName(p[0])+' vs '+rankName(p[1]);}
+
+/* ---------- rendering ---------- */
+function chip(done,locked){return '<span class="chip '+(done?'done':(locked?'':'todo'))+'">'+(done?'Done':(locked?'Locked':'To do'))+'</span>';}
+
+function renderRank(){
+  const done=rankingDone();
+  let h='<div class="step-h"><div class="n">2</div><h2>Rank the KPIs</h2>'+chip(done,false)+'</div>';
+  h+='<p class="muted">Tap the most important KPI first, then the next, until all five are numbered. If two feel equal, put either one first. You can show that later with an equal number.</p>';
+  h+='<div class="kpis">';
+  for(let i=0;i<5;i++){
+    const r=state.ranking.indexOf(i);
+    h+='<button type="button" class="kpi" data-kpi="'+i+'" aria-pressed="'+(r>=0)+'"'+(r>=0||done?' aria-disabled="true"':'')+'>'+(r>=0?'<span class="rk">'+(r+1)+'</span>':'')+'<b>'+esc(name(i))+'</b>'+(kp(i)[1]?'<span>'+esc(kp(i)[1])+'</span>':'')+'</button>';
+  }
+  h+='</div>';
+  if(state.ranking.length){
+    h+='<div class="order" aria-label="Your order">'+state.ranking.map(function(k,r){return '<span class="o"><i>'+(r+1)+'</i>'+esc(name(k))+'</span>';}).join('')+'</div>';
+  }
+  h+='<div class="btns">';
+  if(state.ranking.length&&!done)h+='<button type="button" class="btn" data-act="undo">Undo last</button>';
+  if(done)h+='<button type="button" class="btn" data-act="rerank">Change ranking</button>';
+  h+='</div>';
+  if(state.confirm==='rerank'){
+    h+='<div class="confirm">Changing the ranking clears your comparisons. <button type="button" class="btn" data-act="rerank-yes">Clear and re-rank</button><button type="button" class="btn" data-act="confirm-no">Keep</button></div>';
+  }
+  $('s2').innerHTML=h;
+}
+
+function optsHtml(cell,locked){
+  const ok=locked?[]:allowed(cell),cur=state.vals[cell];
+  const only=(!locked&&state.mode==='guided'&&ok.length===1&&cur==null)?ok[0]:null;
+  let h='<div class="opts" role="group">';
+  for(let v=1;v<=5;v++){
+    const isOk=ok.indexOf(v)>=0,sel=cur===v;
+    h+='<button type="button" class="opt'+(only===v?' only':'')+'" data-cell="'+cell+'" data-v="'+v+'" aria-pressed="'+sel+'"'+((!isOk&&!sel)||locked?' aria-disabled="true"':'')+' aria-label="'+v+', '+LABEL[v]+((!isOk&&!sel)?', not available':'')+'"><strong>'+v+'</strong><span>'+LABEL[v]+'</span></button>';
+  }
+  h+='</div>';
+  if(only!=null)h+='<p class="only-note">Only '+only+' fits your other answers.</p>';
+  return h;
+}
+function reasonText(rs){
+  const A=state.vals[0],t=state.tol,cell=rs.cell;
+  if(rs.why==='cap')return rs.v+' is higher than your Best vs Worst answer ('+A+'). No answer can be higher than that.';
+  if(rs.why==='order')return cell<=3?'Order rule: numbers in this list stay the same or go up from top to bottom.':'Order rule: numbers in this list stay the same or go down from top to bottom.';
+  if(rs.why==='product')return 'Product check: with your other answers, '+rs.v+' would make them contradict each other. A KPI’s two numbers multiplied should be '+(A-t)+' to '+(A+t)+'.';
+  return rs.v+' does not fit the order rule and the product check together with your other answers.';
+}
+function pairRow(cell,locked){
+  const p=cellPair(cell),a=rankName(p[0]),b=rankName(p[1]);
+  const rs=state.reason&&state.reason.cell===cell?state.reason:null;
+  return '<div class="pair"><div class="pair-q"><span><b>'+esc(a)+'</b> vs <b>'+esc(b)+'</b></span><small>How much more important is '+esc(a)+' than '+esc(b)+'?</small></div>'+optsHtml(cell,locked)+(rs?'<p class="why" role="status">'+esc(reasonText(rs))+'</p>':'')+'</div>';
+}
+
+function renderAnswers(){
+  const rd=rankingDone();
+  // step 3: best vs worst
+  let h='<div class="step-h"><div class="n">3</div><h2>Best compared with worst</h2>'+chip(state.vals[0]!=null,!rd)+'</div>';
+  if(!rd){h+='<p class="muted">Finish the ranking first.</p>';}
+  else{
+    h+='<p class="muted">Your top KPI is <b>'+esc(rankName(0))+'</b> and your lowest is <b>'+esc(rankName(4))+'</b>. This answer is the biggest gap on the form. No other number can be higher than it.</p>';
+    h+='<div class="legend">'+[1,2,3,4,5].map(function(v){return '<div><b>'+v+'</b>'+LABEL[v]+'</div>';}).join('')+'</div>';
+    h+=pairRow(0,false);
+  }
+  $('s3').innerHTML=h;$('s3').classList.toggle('locked',!rd);
+
+  // step 4
+  const ready=rd&&state.vals[0]!=null;
+  let g='<div class="step-h"><div class="n">4</div><h2>Compare the other KPIs</h2>'+chip(allAnswers(),!ready)+'</div>';
+  if(!ready){g+='<p class="muted">Answer step 3 first.</p>';}
+  else{
+    if(state.notice)g+='<p class="notice" role="status">'+esc(state.notice)+'</p>';
+    if(state.mode==='guided')g+='<p class="muted">Greyed-out numbers would contradict your earlier answers. Tap one to see why.</p>';
+    else g+='<p class="muted">Free mode: any number can be chosen. Problems are listed at the end.</p>';
+    g+='<div class="part"><h3>Your top KPI against each of the others</h3><p>Going down this list, each KPI is less important, so the number stays the same or goes up.</p></div>';
+    g+=[1,2,3].map(function(c){return pairRow(c,false);}).join('');
+    g+='<div class="part"><h3>Each of the others against your lowest KPI</h3><p>Going down this list, each KPI is less important, so the number stays the same or goes down.</p></div>';
+    g+=[4,5,6].map(function(c){return pairRow(c,false);}).join('');
+  }
+  $('s4').innerHTML=g;$('s4').classList.toggle('locked',!ready);
+}
+
+function renderReview(){
+  const full=rankingDone()&&allAnswers();
+  let h='<div class="step-h"><div class="n">5</div><h2>Review and save</h2>'+chip(false,!full)+'</div>';
+  if(!full){h+='<p class="muted">Complete the steps above to see the checks.</p>';$('s5').innerHTML=h;$('s5').classList.add('locked');return;}
+  $('s5').classList.remove('locked');
+  const r=runChecks(state.vals,state.tol),A=state.vals[0];
+  h=h.replace('<span class="chip todo">To do</span>',r.ok?'<span class="chip done">Passed</span>':'<span class="chip todo">Needs a look</span>');
+  h+='<div class="order">'+state.ranking.map(function(k,i){return '<span class="o"><i>'+(i+1)+'</i>'+esc(name(k))+'</span>';}).join('')+'</div>';
+  h+='<div class="scroll"><table><thead><tr><th>Check</th><th>Result</th></tr></thead><tbody>';
+  const row=function(l,ok){return '<tr><td>'+l+'</td><td class="'+(ok?'pass':'fail')+'">'+(ok?'Pass':'Fail')+'</td></tr>';};
+  h+=row('Top list: numbers stay the same or go up',r.up);
+  h+=row('Bottom list: numbers stay the same or go down',r.low);
+  h+=row('No number is higher than the Best vs Worst answer ('+A+')',r.cap);
+  r.prod.forEach(function(p,i){
+    h+=row(esc(rankName(i+1))+': '+p.x+' × '+p.y+' = '+p.p+' (should be '+p.lo+' to '+p.hi+')',p.ok);
+  });
+  h+='</tbody></table></div>';
+  h+=r.ok?'<p class="banner ok">All checks pass.</p>':'<p class="banner bad">Some checks fail. Ask the respondent whether to revise, or save as given and note it.</p>';
+  if(state.demo){
+    h+='<p class="banner bad">These are example answers and cannot be saved.</p><div class="btns"><button type="button" class="btn" data-act="next">Clear form</button></div>';
+  }else if(state.justSaved&&SHEET_URL){
+    const st=state.lastRec?state.lastRec.sheet:'pending';
+    if(st==='confirmed')h+='<p class="banner ok" role="status">Thank you. Your response has been recorded.</p>';
+    else if(st==='sent')h+='<p class="banner ok" role="status">Thank you. Your response was sent.</p>';
+    else h+='<p class="banner bad" role="status">Your answers could not be sent yet. They are kept on this device and will be sent when the connection returns. Keep this page open, or press Try again.'+(state.sheetErr&&!RESPONDENT?' Details: '+esc(state.sheetErr):'')+'</p><div class="btns"><button type="button" class="btn primary" data-act="retry">Try again</button></div>';
+    h+='<div class="btns"><button type="button" class="btn" data-act="next">Start a new response</button></div>';
+  }else if(state.justSaved){
+    h+='<p class="banner ok" role="status">'+(state.db&&!state.saveNote?'Saved to the shared database.':'Saved. Copy the rows below into the calculator, then start the next respondent.')+'</p>'+(state.saveNote?'<p class="banner bad">'+esc(state.saveNote)+'</p>':'')+'<div class="btns"><button type="button" class="btn primary" data-act="next">Next respondent</button></div>';
+  }else{
+    const rid=clean($('rid').value);
+    if(rid&&list().some(function(x){return x.id===rid&&x.group===state.group;}))h+='<p class="notice">A response with ID "'+esc(rid)+'" is already saved for this group. Check the ID before saving again.</p>';
+    if(state.db&&state.canWrite===false)h+='<p class="banner bad">You can view responses but not save new ones. Ask the owner for Contributor access.</p>';
+    else h+='<div class="btns"><button type="button" class="btn primary" data-act="save"'+(state.saving?' disabled':'')+'>'+(state.saving?'Saving\u2026':'Save this response')+'</button></div>';
+  }
+  $('s5').innerHTML=h;
+}
+
+/* ---------- records ---------- */
+function clean(s){return String(s).replace(/[\t\r\n]+/g,' ').trim();}
+function makeRecord(){
+  const r=state.ranking,v=state.vals,A=v[0];
+  const bo=[0,0,0,0,0],ow=[0,0,0,0,0];
+  bo[r[0]]=1;ow[r[0]]=A;
+  bo[r[1]]=v[1];ow[r[1]]=v[4];
+  bo[r[2]]=v[2];ow[r[2]]=v[5];
+  bo[r[3]]=v[3];ow[r[3]]=v[6];
+  bo[r[4]]=A;ow[r[4]]=1;
+  return {
+    id:clean($('rid').value),ref:clean($('rid').value)+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),group:state.group,mode:state.mode,tol:state.tol,at:new Date().toISOString(),
+    names:[0,1,2,3,4].map(name),ranking:r.map(name),best:name(r[0]),worst:name(r[4]),
+    A:A,pairs:v.slice(),bo:bo,ow:ow
+  };
+}
+function calcRow(rec){return [rec.id,rec.group,rec.best,rec.worst].concat(rec.bo,rec.ow).map(clean).join('\t');}
+function csvCell(s){s=String(s);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+function fullCsv(){
+  const head=['id','group','mode','tolerance','saved_at','ranking','best','worst','A_best_vs_worst','best_vs_2nd','best_vs_3rd','best_vs_4th','2nd_vs_worst','3rd_vs_worst','4th_vs_worst'];
+  const lines=[head.join(',')];
+  shown().forEach(function(rec){
+    lines.push([rec.id,rec.group,rec.mode,rec.tol,rec.at,rec.ranking.join(' > '),rec.best,rec.worst].concat(rec.pairs).map(csvCell).join(','));
+  });
+  return lines.join('\n');
+}
+function renderSaved(){
+  const rows=shown(),total=list().length;
+  $('savedCount').textContent=String(total);
+  const pend=state.local.filter(function(r){return r.sheet==='pending';}).length;
+  let h='<div class="btns">'+(SHEET_URL?'<span class="chip done">Google Sheet</span>':(state.db?'<span class="chip done">Shared database</span>':'<span class="chip todo">This browser only</span>'))+'<span class="small muted">'+(SHEET_URL?'This list shows responses saved on this device. The sheet holds all devices.':(state.db?'Every signed-in device with access sees the same list.':'Responses stay on this device. Copy the rows after each respondent.'))+'</span></div>';
+  if(SHEET_URL&&pend)h+='<div class="confirm">'+pend+' response'+(pend>1?'s have':' has')+' not reached the sheet. <button type="button" class="btn" data-act="retry">Try again</button></div>';
+  if(state.dbErr)h+='<p class="notice">Shared database unavailable ('+esc(state.dbErr)+'). Using this browser only.</p>';
+  if(state.db&&state.local.length)h+='<div class="confirm">'+state.local.length+' response'+(state.local.length>1?'s are':' is')+' stored only on this device. <button type="button" class="btn" data-act="upload">Upload to shared database</button></div>';
+  if(state.uploadNote)h+='<p class="notice" role="status">'+esc(state.uploadNote)+'</p>';
+  if(!total){
+    $('savedBody').innerHTML=h+'<p class="muted">Nothing saved yet.</p>';return;
+  }
+  h+='<label class="f" style="max-width:260px">Show<select id="viewGroup">'+['All'].concat(DEFAULT_GROUPS).map(function(g){return '<option'+(g===state.viewGroup?' selected':'')+'>'+esc(g)+'</option>';}).join('')+'</select></label>';
+  if(!rows.length){$('savedBody').innerHTML=h+'<p class="muted">No responses for this group.</p>';return;}
+  h+='<div class="scroll"><table><thead><tr><th>ID</th><th>Group</th><th>Best</th><th>Worst</th><th>Best vs Worst</th><th></th></tr></thead><tbody>';
+  rows.forEach(function(rec,i){
+    h+='<tr><td>'+esc(rec.id)+'</td><td>'+esc(rec.group)+'</td><td>'+esc(rec.best)+'</td><td>'+esc(rec.worst)+'</td><td>'+esc(rec.A)+'</td><td><button type="button" class="btn" data-rm="'+i+'">Remove</button></td></tr>';
+  });
+  h+='</tbody></table></div>';
+  h+='<div style="display:grid;gap:6px"><h3>Rows for the calculator</h3><p class="small muted">Paste into the Responses sheet from row 7. Columns: ID, group, best, worst, five Best-to-Others, five Others-to-Worst, in the order of the KPI list in Settings. Use one workbook per group.</p>'
+    +'<textarea id="outRows" rows="'+Math.min(8,rows.length+1)+'" readonly>'+esc(rows.map(calcRow).join('\n'))+'</textarea>'
+    +'<div class="btns"><button type="button" class="btn primary" data-copy="outRows">Copy rows</button></div></div>';
+  h+='<div style="display:grid;gap:6px"><h3>Full records (CSV)</h3><p class="small muted">Includes ranking, mode, tolerance and time saved.</p>'
+    +'<textarea id="outCsv" rows="6" readonly>'+esc(fullCsv())+'</textarea>'
+    +'<div class="btns"><button type="button" class="btn" data-copy="outCsv">Copy CSV</button></div></div>';
+  $('savedBody').innerHTML=h;
+}
+function makeId(){
+  const pre={'Buyer':'B','Seller':'S','Service provider':'P'}[state.group]||'X';
+  const ab='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let r='';
+  for(let i=0;i<4;i++)r+=ab[Math.floor(Math.random()*ab.length)];
+  return pre+'-'+r;
+}
+function sheetHeader(names){
+  return ['Respondent ID','Group','Best KPI','Worst KPI']
+    .concat(names.map(function(n){return 'Best-to-Others: '+n;}),names.map(function(n){return 'Others-to-Worst: '+n;}),
+      ['Ranking','Best vs Worst','Best vs 2nd','Best vs 3rd','Best vs 4th','2nd vs Worst','3rd vs Worst','4th vs Worst','Mode','Tolerance','Saved at','Ref']);
+}
+function sheetPayload(rec){
+  const row=[rec.id,rec.group,rec.best,rec.worst].concat(rec.bo,rec.ow,[rec.ranking.join(' > ')],rec.pairs,[rec.mode,rec.tol,rec.at,rec.ref]);
+  return {key:SHEET_KEY,ref:rec.ref,group:rec.group,header:sheetHeader(rec.names),row:row};
+}
+async function sendToSheet(rec){
+  const body=JSON.stringify(sheetPayload(rec));
+  const opt={method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:body};
+  let res;
+  try{res=await fetch(SHEET_URL,opt);}
+  catch(e){
+    // The browser may block reading the reply even though the request goes through. Send once more without reading it.
+    await fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:opt.headers,body:body});
+    return 'sent';
+  }
+  let j=null;try{j=await res.json();}catch(e){}
+  if(j&&j.ok)return 'confirmed';
+  throw new Error(j&&j.error?String(j.error):'rejected');
+}
+let flushing=false;
+async function flushOutbox(){
+  if(!SHEET_URL||flushing)return;
+  flushing=true;state.sheetErr='';
+  try{
+    for(const rec of state.local){
+      if(rec.sheet!=='pending')continue;
+      try{rec.sheet=await sendToSheet(rec);}catch(e){state.sheetErr=String(e&&e.message||e);break;}
+    }
+  }finally{flushing=false;}
+  lsSet('kif.saved.v1',state.local);
+  renderReview();renderSaved();
+}
+async function sendTest(){
+  const note=$('testNote');note.textContent='Sending\u2026';
+  const names=[0,1,2,3,4].map(name);
+  const rec={id:'TEST',ref:'TEST-'+Date.now().toString(36),group:'TEST',mode:state.mode,tol:state.tol,at:new Date().toISOString(),names:names,ranking:names,best:names[0],worst:names[4],A:5,pairs:[5,2,3,3,3,2,2],bo:[1,2,3,3,5],ow:[5,3,2,2,1]};
+  try{const r=await sendToSheet(rec);note.textContent=r==='confirmed'?'Sheet confirmed the row.':'Sent. The browser cannot read the reply, so check the TEST tab.';}
+  catch(e){note.textContent='Failed: '+String(e&&e.message||e);}
+}
+async function doSave(){
+  if(state.saving)return;
+  state.saving=true;state.saveNote='';renderReview();
+  const rec=makeRecord();
+  if(SHEET_URL){
+    rec.sheet='pending';
+    state.local.push(rec);state.lastRec=rec;lsSet('kif.saved.v1',state.local);
+    try{rec.sheet=await sendToSheet(rec);state.sheetErr='';}
+    catch(err){rec.sheet='pending';state.sheetErr=String(err&&err.message||err);}
+    lsSet('kif.saved.v1',state.local);
+    state.justSaved=true;state.saving=false;renderReview();renderSaved();return;
+  }
+  try{
+    if(state.db){await state.db.collection('responses').add(JSON.parse(JSON.stringify(rec)));}
+    else{state.local.push(rec);lsSet('kif.saved.v1',state.local);}
+    state.justSaved=true;
+  }catch(err){
+    state.local.push(rec);lsSet('kif.saved.v1',state.local);
+    state.justSaved=true;
+    state.saveNote='The shared database did not accept this save ('+((err&&err.code)||'error')+'). The response was kept in this browser. Upload it later from the Saved responses section.';
+  }
+  state.saving=false;renderReview();renderSaved();
+}
+async function removeRec(i){
+  const rec=shown()[i];if(!rec)return;
+  if(state.db){
+    try{await state.db.doc('responses/'+rec._id).delete();}
+    catch(err){state.uploadNote='Could not remove ('+((err&&err.code)||'error')+').';renderSaved();}
+  }else{
+    const k=state.local.indexOf(rec);
+    if(k>=0){state.local.splice(k,1);lsSet('kif.saved.v1',state.local);}
+    renderSaved();
+  }
+}
+async function uploadLocal(){
+  if(!state.db)return;
+  state.uploadNote='Uploading\u2026';renderSaved();
+  let done=0;
+  try{
+    while(state.local.length){
+      await state.db.collection('responses').add(JSON.parse(JSON.stringify(state.local[0])));
+      state.local.shift();lsSet('kif.saved.v1',state.local);done++;
+    }
+    state.uploadNote='Uploaded '+done+' response'+(done===1?'':'s')+'.';
+  }catch(err){
+    state.uploadNote='Stopped after '+done+' ('+((err&&err.code)||'error')+'). The rest are still on this device.';
+  }
+  renderSaved();
+}
+function applyRemoteSetup(d){
+  if(!d||typeof d!=='object')return;
+  if(state.ranking.length||anyAnswers())return;
+  const ok=d.kpis&&DEFAULT_GROUPS.every(function(g){return Array.isArray(d.kpis[g])&&d.kpis[g].length===5&&d.kpis[g].every(function(k){return Array.isArray(k)&&typeof k[0]==='string';});});
+  if(ok)state.kpis=d.kpis;
+  if(d.mode==='free'||d.mode==='guided')state.mode=d.mode;
+  if([0,1,2].indexOf(d.tol)>=0){state.tol=d.tol;SETS=buildSets(state.tol);}
+  lsSet('kif.setup.v1',{mode:state.mode,tol:state.tol,kpis:state.kpis});
+  renderAll();
+}
+async function initDb(){
+  if(SHEET_URL)return;
+  if(!(window.claude&&typeof window.claude.use==='function'))return;
+  let db=null;
+  try{db=await window.claude.use('db');}catch(e){db=null;}
+  if(!db)return;
+  try{const u=await window.claude.use('user');if(u)state.canWrite=await u.can('data.write');}catch(e){}
+  try{const snap=await db.doc('config/setup').get();if(snap.exists)applyRemoteSetup(snap.data());}catch(e){}
+  state.db=db;
+  db.collection('responses').orderBy('at').limit(1000).onSnapshot(function(snap){
+    state.remote=snap.docs.map(function(d){return Object.assign({_id:d.id},d.data());});
+    state.dbErr='';
+    renderSaved();renderReview();
+  },function(err){
+    state.db=null;state.remote=null;state.dbErr=(err&&err.code)||'error';
+    renderSaved();renderReview();
+  });
+  renderSaved();renderReview();
+}
+
+function renderSetup(){
+  $('modeGuided').checked=state.mode==='guided';$('modeFree').checked=state.mode==='free';
+  $('tol').value=String(state.tol);
+  $('setupGroup').textContent=state.group;
+  $('setupSummary').textContent=(state.mode==='guided'?'Guided':'Free')+' · tolerance ±'+state.tol+' · '+state.group;
+  let h='';
+  for(let i=0;i<5;i++){
+    h+='<div class="kpi-edit"><input type="text" data-ke="'+i+'" data-f="0" value="'+esc(kp(i)[0])+'" aria-label="KPI '+(i+1)+' code"><input type="text" data-ke="'+i+'" data-f="1" value="'+esc(kp(i)[1])+'" placeholder="Full name (optional, shown under the code)" aria-label="KPI '+(i+1)+' full name"></div>';
+  }
+  $('kpiEdit').innerHTML=h;
+}
+function renderAll(){renderSetup();renderRank();renderAnswers();renderReview();renderSaved();}
+
+/* ---------- events ---------- */
+document.addEventListener('click',function(e){
+  const t=e.target.closest('button');if(!t)return;
+  if(t.dataset.kpi!=null){
+    const i=+t.dataset.kpi;
+    if(state.ranking.indexOf(i)<0&&!rankingDone()){state.ranking.push(i);state.justSaved=false;resetAnswers();renderRank();renderAnswers();renderReview();}
+    return;
+  }
+  if(t.dataset.cell!=null){pick(+t.dataset.cell,+t.dataset.v);return;}
+  const act=t.dataset.act;
+  if(act==='upload'){uploadLocal();return;}
+  if(act==='retry'){flushOutbox();return;}
+  if(act==='next'){clearForm();$('rid').value=RESPONDENT?makeId():'';renderAll();window.scrollTo(0,0);return;}
+  if(act==='undo'){state.ranking.pop();renderRank();renderAnswers();renderReview();return;}
+  if(act==='rerank'){
+    if(anyAnswers()){state.confirm='rerank';renderRank();}
+    else{state.ranking=[];state.confirm=null;renderRank();renderAnswers();renderReview();}
+    return;
+  }
+  if(act==='rerank-yes'){state.ranking=[];resetAnswers();state.confirm=null;state.demo=false;renderRank();renderAnswers();renderReview();return;}
+  if(act==='confirm-no'){state.confirm=null;renderRank();return;}
+  if(act==='save'){
+    if(!clean($('rid').value)){$('rid').focus();$('rid').style.borderColor='var(--bad)';return;}
+    $('rid').style.borderColor='';
+    doSave();return;
+  }
+  if(t.dataset.rm!=null){
+    if(t.dataset.arm==='1'){removeRec(+t.dataset.rm);return;}
+    t.dataset.arm='1';t.textContent='Confirm';
+    setTimeout(function(){if(t.isConnected){t.dataset.arm='';t.textContent='Remove';}},3000);
+    return;
+  }
+  if(t.dataset.copy){
+    const ta=$(t.dataset.copy),txt=ta.value;
+    const fallback=function(){ta.focus();ta.select();let ok=false;try{ok=document.execCommand('copy');}catch(x){}t.textContent=ok?'Copied':'Selected: press Ctrl+C';};
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){t.textContent='Copied';},fallback);
+    }else fallback();
+    setTimeout(function(){if(t.isConnected)t.textContent=t.dataset.copy==='outRows'?'Copy rows':'Copy CSV';},2500);
+    return;
+  }
+  if(t.id==='fillExample'){
+    state.ranking=[0,1,2,3,4];state.vals=[5,2,3,3,3,2,2];state.reason=null;state.notice='';state.demo=true;state.justSaved=false;
+    if(state.mode==='guided'&&!feasible(SETS,state.vals)){state.vals=[5,1,1,1,5,5,5];}
+    renderRank();renderAnswers();renderReview();return;
+  }
+  if(t.id==='sendTest'){sendTest();return;}
+  if(t.id==='resetSetup'){
+    state.mode='guided';state.tol=1;state.kpis=defaultKpis();SETS=buildSets(1);persistSetup();clearForm();renderAll();return;
+  }
+});
+document.addEventListener('change',function(e){
+  const t=e.target;
+  if(t.name==='mode'){state.mode=t.value;persistSetup();resetAnswers();renderSetup();renderAnswers();renderReview();return;}
+  if(t.id==='tol'){state.tol=+t.value;SETS=buildSets(state.tol);persistSetup();resetAnswers();renderSetup();renderAnswers();renderReview();return;}
+  if(t.id==='viewGroup'){state.viewGroup=t.value;renderSaved();return;}
+  if(t.id==='grp'){state.group=t.value;clearForm();if(RESPONDENT)$('rid').value=makeId();renderAll();return;}
+});
+document.addEventListener('input',function(e){
+  const t=e.target;
+  if(t.id==='rid'){renderReview();return;}
+  if(t.dataset&&t.dataset.ke!=null){
+    const i=+t.dataset.ke,f=+t.dataset.f;
+    state.kpis[state.group][i][f]=t.value;persistSetup();
+    renderRank();renderAnswers();renderReview();
+  }
+});
+$('grp').value=state.group;
+if(SHEET_URL)$('sheetBox').hidden=false;
+if(RESPONDENT){
+  $('setup').hidden=true;$('s6').hidden=true;
+  const rid=$('rid');rid.readOnly=true;rid.value=makeId();
+  rid.parentNode.firstChild.nodeValue='Your reference';
+  if(HASH_GROUP){$('grp').parentNode.hidden=true;}
+}
+renderAll();
+initDb();
+if(SHEET_URL){window.addEventListener('online',flushOutbox);flushOutbox();}
+})();
+</script>
+
+</body>
+</html>
