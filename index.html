@@ -30,7 +30,7 @@
 }
 [hidden]{display:none!important}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--font);padding-inline:16px;padding-block:20px 64px;font-variant-numeric:tabular-nums}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--font);padding-inline:16px;padding-block:20px 64px;font-variant-numeric:tabular-nums;margin:0}
 .wrap{max-width:760px;margin-inline:auto;display:grid;gap:16px}
 h1{font-size:26px;line-height:1.2;margin:0;text-wrap:balance}
 h2{font-size:18px;line-height:1.3;margin:0;text-wrap:balance}
@@ -56,9 +56,29 @@ button,input,select,textarea{min-width:0}
 
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media (max-width:520px){.row2{grid-template-columns:1fr}}
-label.f{display:grid;gap:4px;font-size:14px;font-weight:600;min-width:0}
+label.f{display:grid;gap:4px;font-size:14px;font-weight:600;min-width:0;align-content:start}
 input[type=text],select,textarea{width:100%;font:inherit;font-weight:400;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 10px}
 textarea{font-family:var(--mono);font-size:12px;line-height:1.5;white-space:pre;overflow:auto;resize:vertical}
+fieldset{border:0;padding:0;margin:0;display:grid;gap:8px;min-width:0}
+legend{font-size:14px;font-weight:600;padding:0;margin-bottom:6px}
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:6px}
+.checks label{display:flex;gap:8px;align-items:flex-start;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer}
+.checks label:hover{background:var(--surface-2)}
+.checks input{margin-top:3px;flex:none}
+
+.grp{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.gbtn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:12px;text-align:left;cursor:pointer;display:grid;gap:2px;align-content:start}
+.gbtn:hover{background:var(--surface-2)}
+.gbtn b{font-size:17px}
+.gbtn span{font-size:13px;color:var(--muted)}
+.gbtn[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+
+.defs{display:grid;gap:10px}
+.def{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:4px}
+.def:first-child{border-top:0;padding-top:0}
+.def-h{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.def-h b{font-size:16px}
+.def p{font-size:14px;color:var(--muted)}
 
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;font-size:14px}
 .btn:hover{background:var(--surface-2)}
@@ -118,32 +138,123 @@ details.setup>summary{cursor:pointer;padding:12px 16px;font-weight:600;list-styl
 details.setup>summary::-webkit-details-marker{display:none}
 details.setup>summary span{font-weight:400;color:var(--muted);font-size:14px}
 .setup-body{padding:4px 16px 16px;display:grid;gap:14px;border-top:1px solid var(--line)}
-.kpi-edit{display:grid;grid-template-columns:110px 1fr;gap:8px}
-@media (max-width:480px){.kpi-edit{grid-template-columns:90px 1fr}}
 .radio{display:flex;gap:16px;flex-wrap:wrap;font-size:14px}
 .radio label{display:flex;gap:6px;align-items:center}
-.how{font-size:14px;color:var(--muted);display:grid;gap:4px;padding-left:18px;margin:0}
-@media (prefers-reduced-motion:no-preference){.opt,.kpi,.btn{transition:background .12s,border-color .12s}}
+@media (prefers-reduced-motion:no-preference){.opt,.kpi,.btn,.gbtn{transition:background .12s,border-color .12s}}
 </style>
 </head>
 <body>
 
-
-
 <script>
-/* ===== EDIT HERE BEFORE HOSTING =====
-   sheetUrl : the Web app URL from Google Apps Script (ends in /exec). Leave '' to run without Google Sheets.
-   sheetKey : the same key you set in the Apps Script (KEY).
-   kpis     : leave null for the defaults, or give {"Seller":[["DRI","full name"],...5 items],"Buyer":[...],"Service provider":[...]}.
-   mode     : 'guided' or 'free'.   tol : 0, 1 or 2 (product tolerance). */
-window.KPI_CONFIG={sheetUrl:'https://script.google.com/macros/s/AKfycbxdt5is8X7Xq5QPaN4wy66yTr9Z9tMcWjvmDdwZOoERMcb5zc7oPLPGGxfA-abrF-ey/exec',sheetKey:'GeMIITD#2026',mode:'guided',tol:1,kpis:null};
+/* ============================== EDIT HERE ==============================
+   1. KPI_CONFIG   : connection to Google Sheets and form behaviour.
+        sheetUrl   : Web app URL from Google Apps Script (ends in /exec). '' runs the form without Google Sheets.
+        sheetKey   : the same key as KEY in the Apps Script.
+        mode       : 'guided' (only consistent numbers can be picked) or 'free'.
+        tol        : 0, 1 or 2 (product tolerance).
+        tabSuffix  : added to every tab name in the sheet. Change it (for example ' v3') whenever the columns of the
+                     form change, so new rows go to fresh tabs with the right headers.
+   2. PROFILE_OPTS : the choices shown in the "About you" step.
+   3. KPI_DATA     : the KPIs of each group. 3 to 7 KPIs per group. Order here = column order in the sheet.
+                     code = short name used on buttons and in the sheet, name = full name, def = what it measures,
+                     theme = the group the KPI belongs to.
+   ====================================================================== */
+window.KPI_CONFIG={
+  sheetUrl:'https://script.google.com/macros/s/AKfycbxdt5is8X7Xq5QPaN4wy66yTr9Z9tMcWjvmDdwZOoERMcb5zc7oPLPGGxfA-abrF-ey/exec',
+  sheetKey:'GeMIITD#2026',
+  mode:'guided',
+  tol:1,
+  tabSuffix:' v2'
+};
+
+window.PROFILE_OPTS={
+  orgTypes:[
+    "Central Government (Ministry / Department)",
+    "State Government (Department)",
+    "CPSE (Central Public Sector Enterprise)",
+    "State PSU",
+    "Panchayat / Rural local body",
+    "Urban local body / Municipality",
+    "Autonomous body / University / Institute",
+    "Defence / Paramilitary",
+    "Other"
+  ],
+  experience:[
+    "Less than 1 year",
+    "1 to 3 years",
+    "3 to 5 years",
+    "More than 5 years"
+  ],
+  categories:[
+    "IT hardware and electronics",
+    "Furniture",
+    "Office and stationery supplies",
+    "Vehicles and transport",
+    "Medical and healthcare",
+    "Machinery and equipment",
+    "Construction, civil and electrical",
+    "Textiles and uniforms",
+    "Food and consumables",
+    "Manpower, security and housekeeping services",
+    "IT and professional services",
+    "Other services"
+  ],
+  sellerTypes:[
+    "OEM",
+    "MSME",
+    "Startup",
+    "Women-owned",
+    "SC/ST-owned",
+    "None of these"
+  ]
+};
+
+window.KPI_DATA={
+  "Seller":[
+    {code:"DRI",name:"Delivery Reliability Index",theme:"Delivery Reliability",
+     def:"A composite score from 0 to 100 (normalised to 0-5) reflecting how reliably a seller meets contractual delivery milestones. It combines the on-time delivery rate with the severity and consistency of delays against SLA obligations, anchored to the on-time rate, with severity and variability applied as deductions."},
+    {code:"SOCR",name:"Seller Order Cancellation Rate",theme:"Contractual Reliability",
+     def:"Measures the share of purchase orders cancelled for reasons directly attributable to the seller, out of all orders reaching definitive closure within the observation window."},
+    {code:"PQP",name:"Product Quality Performance",theme:"Product Quality",
+     def:"A 0-5 score measuring the quality of a seller’s products on GeM, based on verified quality outcomes across eligible orders. A higher score indicates fewer or less severe quality failures."},
+    {code:"WAI",name:"Warranty Adherence Index",theme:"Post-sale / Warranty Assurance",
+     def:"A 0-5 score measuring a seller’s adherence to warranty obligations on GeM, based on acknowledgement timeliness, resolution timeliness, and resubmission efficiency across eligible warranty claims."},
+    {code:"SOR",name:"Sahay Overdue Rate",theme:"Financial Discipline",
+     def:"Measures the share of a seller’s Sahay loans that are overdue within the rolling window, expressed as a percentage of loans disbursed."}
+  ],
+  "Buyer":[
+    {code:"BPI",name:"Buyer Payment Index",theme:"Payment Reliability & Financial Discipline",
+     def:"A composite 0-100 score measuring how reliably a buyer meets contractual payment milestones, combining on-time payment rate, severity of delays against the SLA, and consistency of delays across milestones. The score is anchored to the on-time rate, with delay severity and variability applied as deductions."},
+    {code:"BFR",name:"Bid Fulfilment Rate",theme:"Procurement Discipline",
+     def:"Measures the effectiveness of a buyer to convert a published bid into a purchase order within the Bid Offer Validity period (initial or extended). Applies once financials are opened. A bid where Offer Validity is not sought for X months past Offer Validity expiry is scored zero; cancelled bids are excluded from scoring (no reward, no penalty)."},
+    {code:"BOT",name:"Bid Order Timeliness",theme:"Procurement Discipline",
+     def:"Measures a buyer's adherence to the originally committed bid offer validity period for issuing Purchase Orders. It is calculated only for bids with at least one PO issued."},
+    {code:"CBPR",name:"Category Bid Preference Rate",theme:"Procurement Standardisation & Efficiency",
+     def:"Measures the share of a buyer’s procurement done through category bidding versus custom bidding. Meeting or exceeding a defined threshold earns bonus points."},
+    {code:"BOCR",name:"Buyer Order Cancellation Rate",theme:"Contract Management & Contractual Reliability",
+     def:"Measures the share of purchase orders cancelled for buyer-attributable reasons, out of all orders reaching definitive closure within the observation window."}
+  ],
+  "Service provider":[
+    {code:"SCR",name:"Service Compliance Rate",theme:"Service quality & compliance",
+     def:"Measures a service provider’s contractual reliability across all billing cycles in a contract, combining the frequency of deductions, type of deductions (SLA, Service Non-Delivery, and Other) with their magnitude relative to invoice-specific ceilings. The two components are weighted dynamically."},
+    {code:"OSIR",name:"On-Time Service Initiation Rate",theme:"Timely Service Delivery",
+     def:"Measures the percentage of contracts where the service provider initiated the contracted service on or before the contractually agreed start date, within the rolling window."},
+    {code:"OIGR",name:"On-Time Invoice Generation Rate",theme:"Billing & Payment Compliance",
+     def:"Percentage of invoices raised by the service provider within X calendar days (Configurable by GeM FMT) of the contractually agreed billing due date, measured over a rolling window."},
+    {code:"SPCCS",name:"Service Provider Contract Cancellation Score",theme:"Contractual reliability",
+     def:"The KPI scores the service provider on the basis of contract completion rate in a rolling window penalising full and partial cancellations that are attributable to service provider."}
+  ]
+};
 </script>
+
 <div class="wrap">
   <header class="head">
     <div class="eyebrow">Stakeholder consultation</div>
     <h1>KPI importance form</h1>
-    <p class="lede">Rank the KPIs, then say how much more important one is than another. Numbers that would contradict your earlier answers are greyed out, so every finished form is consistent.</p>
+    <p class="lede">Tell us who you are and a little about yourself. You then rate the KPIs used to assess the other side of GeM: buyers rate the seller and service provider KPIs, sellers and service providers rate the buyer KPIs. Rank the KPIs, then say how much more important one is than another. Numbers that would contradict your earlier answers are greyed out, so every finished form is consistent.</p>
   </header>
+
+  <p class="banner bad" id="cfgErr" hidden></p>
 
   <details class="setup" id="setup">
     <summary>Facilitator setup <span id="setupSummary"></span></summary>
@@ -159,30 +270,21 @@ window.KPI_CONFIG={sheetUrl:'https://script.google.com/macros/s/AKfycbxdt5is8X7X
         <select id="tol"><option value="0">0 (exact products only)</option><option value="1">1 (default)</option><option value="2">2</option></select>
         <span class="small muted" style="font-weight:400">For each KPI the two numbers multiplied should land within this distance of the Best-vs-Worst answer. The paper sets no tolerance, so this is the study team's choice.</span>
       </label>
-      <div>
-        <h3>KPIs for <span id="setupGroup"></span></h3>
-        <p class="small muted" style="margin-bottom:8px">Use the same names, in the same order, in the calculator's Settings sheet. Edits are saved in this browser and shared with other devices when the shared database is on.</p>
-        <div id="kpiEdit" style="display:grid;gap:8px"></div>
-      </div>
+      <p class="small muted">KPI names, definitions and the choices in the "About you" step are edited in the first script block of this file (KPI_DATA and PROFILE_OPTS).</p>
       <div class="btns">
         <button class="btn" id="fillExample" type="button">Fill example answers</button>
         <button class="btn" id="resetSetup" type="button">Reset setup to defaults</button>
       </div>
       <div id="sheetBox" hidden>
         <div class="btns"><button class="btn" id="sendTest" type="button">Send test row to Google Sheet</button><span class="small muted" id="testNote"></span></div>
-        <p class="small muted" style="margin-top:6px">Writes one row to a tab called TEST. Delete that tab afterwards.</p>
+        <p class="small muted" style="margin-top:6px">Writes one row to a tab whose name starts with TEST, for the KPI group currently on screen. Delete that tab afterwards.</p>
       </div>
     </div>
   </details>
 
-  <section class="step" id="s1">
-    <div class="step-h"><div class="n">1</div><h2>Respondent</h2></div>
-    <div class="row2">
-      <label class="f" for="rid">Respondent ID<input type="text" id="rid" autocomplete="off" placeholder="e.g. S-01"></label>
-      <label class="f" for="grp">Group<select id="grp"><option>Buyer</option><option selected>Seller</option><option>Service provider</option></select></label>
-    </div>
-  </section>
-
+  <section class="step" id="s1"></section>
+  <section class="step" id="sP"></section>
+  <section class="step" id="sK"></section>
   <section class="step" id="s2"></section>
   <section class="step" id="s3"></section>
   <section class="step" id="s4"></section>
@@ -198,35 +300,48 @@ window.KPI_CONFIG={sheetUrl:'https://script.google.com/macros/s/AKfycbxdt5is8X7X
 (function(){
 'use strict';
 /* LOGIC:BEGIN */
+/* n KPIs give m=n-2 middle KPIs. Cells: 0 = best vs worst (A); 1..m = best vs 2nd..(n-1)th; m+1..2m = 2nd..(n-1)th vs worst. */
 const S=5;
-function buildSets(t){
-  const full=[],noDir=[],noProd=[];
-  for(let A=1;A<=S;A++){
-    const vs=[];for(let v=1;v<=A;v++)vs.push(v);
-    for(const b of vs)for(const c of vs)for(const d of vs)for(const e of vs)for(const f of vs)for(const g of vs){
-      const dir=b<=c&&c<=d&&e>=f&&f>=g;
-      const prod=Math.abs(b*e-A)<=t&&Math.abs(c*f-A)<=t&&Math.abs(d*g-A)<=t;
-      const rec=[A,b,c,d,e,f,g];
-      if(dir&&prod)full.push(rec);
-      if(prod)noDir.push(rec);
-      if(dir)noProd.push(rec);
-    }
-  }
-  return {full,noDir,noProd};
+function asc(len,A){
+  const out=[];
+  (function go(cur,min){
+    if(cur.length===len){out.push(cur.slice());return;}
+    for(let v=min;v<=A;v++){cur.push(v);go(cur,v);cur.pop();}
+  })([],1);
+  return out;
 }
-function match(rec,fixed){for(let i=0;i<7;i++){if(fixed[i]!=null&&rec[i]!==fixed[i])return false;}return true;}
-function feasible(sets,vals){return sets.full.some(r=>match(r,vals));}
-function fixedFor(vals,cell){return vals.map((v,i)=>i===cell?null:(vals[cell]!=null&&i>cell?null:v));}
+function buildSets(t,n){
+  const m=n-2,full=[],noDir=[],noProd=[];
+  for(let A=1;A<=S;A++){
+    const ups=asc(m,A),downs=ups.map(function(u){return u.slice().reverse();});
+    for(const u of ups)for(const d of downs){
+      const rec=[A].concat(u,d);
+      noProd.push(rec);
+      let ok=true;for(let k=0;k<m;k++){if(Math.abs(u[k]*d[k]-A)>t){ok=false;break;}}
+      if(ok)full.push(rec);
+    }
+    const pairs=[];
+    for(let x=1;x<=A;x++)for(let y=1;y<=A;y++)if(Math.abs(x*y-A)<=t)pairs.push([x,y]);
+    (function go(k,xs,ys){
+      if(k===m){noDir.push([A].concat(xs,ys));return;}
+      for(const p of pairs){xs.push(p[0]);ys.push(p[1]);go(k+1,xs,ys);xs.pop();ys.pop();}
+    })(0,[],[]);
+  }
+  return {full:full,noDir:noDir,noProd:noProd,n:n,m:m,cells:2*m+1};
+}
+function match(rec,fixed){for(let i=0;i<rec.length;i++){if(fixed[i]!=null&&rec[i]!==fixed[i])return false;}return true;}
+function feasible(sets,vals){return sets.full.some(function(r){return match(r,vals);});}
+function fixedFor(vals,cell){return vals.map(function(v,i){return i===cell?null:(vals[cell]!=null&&i>cell?null:v);});}
 function allowedValues(sets,vals,cell){
   const fixed=fixedFor(vals,cell),s=new Set();
   for(const r of sets.full)if(match(r,fixed))s.add(r[cell]);
-  return [...s].sort((a,b)=>a-b);
+  return [...s].sort(function(a,b){return a-b;});
 }
 function reasonFor(sets,vals,cell,v){
   const A=vals[0];
   if(cell>0&&A!=null&&v>A)return 'cap';
   const fixed=fixedFor(vals,cell);fixed[cell]=v;
-  const p=sets.noProd.some(r=>match(r,fixed)),d=sets.noDir.some(r=>match(r,fixed));
+  const p=sets.noProd.some(function(r){return match(r,fixed);}),d=sets.noDir.some(function(r){return match(r,fixed);});
   if(p&&!d)return 'product';
   if(d&&!p)return 'order';
   return 'both';
@@ -234,116 +349,136 @@ function reasonFor(sets,vals,cell,v){
 function repair(sets,vals,cell){
   const cleared=[];
   while(!feasible(sets,vals)){
-    let j=-1;for(let i=6;i>cell;i--)if(vals[i]!=null){j=i;break;}
+    let j=-1;for(let i=vals.length-1;i>cell;i--)if(vals[i]!=null){j=i;break;}
     if(j<0)break;
     vals[j]=null;cleared.push(j);
   }
   return cleared;
 }
-function runChecks(vals,t){
-  const A=vals[0],b=vals[1],c=vals[2],d=vals[3],e=vals[4],f=vals[5],g=vals[6];
-  const prod=[[b,e],[c,f],[d,g]].map(function(p){return {x:p[0],y:p[1],p:p[0]*p[1],lo:A-t,hi:A+t,ok:Math.abs(p[0]*p[1]-A)<=t};});
-  const r={cap:vals.slice(1).every(function(v){return v<=A;}),up:b<=c&&c<=d,low:e>=f&&f>=g,prod:prod};
+function runChecks(vals,t,n){
+  const m=n-2,A=vals[0],top=vals.slice(1,1+m),bot=vals.slice(1+m);
+  const prod=top.map(function(x,k){const y=bot[k];return {x:x,y:y,p:x*y,lo:A-t,hi:A+t,ok:Math.abs(x*y-A)<=t};});
+  let up=true,low=true;
+  for(let k=1;k<m;k++){if(top[k]<top[k-1])up=false;if(bot[k]>bot[k-1])low=false;}
+  const r={cap:vals.slice(1).every(function(v){return v<=A;}),up:up,low:low,prod:prod};
   r.ok=r.cap&&r.up&&r.low&&prod.every(function(p){return p.ok;});
   return r;
 }
 /* LOGIC:END */
 
 const LABEL=['','Equal','Slight','Moderate','Strong','Extreme'];
-const DEFAULT_GROUPS=['Buyer','Seller','Service provider'];
-function defaultKpis(){
-  return {
-    'Seller':[['DRI',''],['SOCR',''],['WAI',''],['SOR',''],['PQP','']],
-    'Buyer':[1,2,3,4,5].map(function(i){return ['Buyer KPI '+i,''];}),
-    'Service provider':[1,2,3,4,5].map(function(i){return ['Provider KPI '+i,''];})
-  };
-}
+const GROUPS=['Buyer','Seller','Service provider'];
+const DEALS=[['products','Products only'],['services','Services only'],['both','Both products and services']];
+const DEALS_LABEL={products:'Products',services:'Services',both:'Both products and services'};
+const NWORD=['','','','three','four','five','six','seven'];
+const ORD={2:'2nd',3:'3rd'};
+function ord(k){return ORD[k]||(k+'th');}
 const $=function(id){return document.getElementById(id);};
 const esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+function clean(s){return String(s==null?'':s).replace(/[\t\r\n]+/g,' ').trim();}
 function lsGet(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 
+/* ---------- configuration ---------- */
 const CFG=window.KPI_CONFIG||{};
 const SHEET_URL=String(CFG.sheetUrl||'').trim();
 const SHEET_KEY=String(CFG.sheetKey||'');
+const TAB_SUFFIX=String(CFG.tabSuffix==null?'':CFG.tabSuffix);
+const OPT=Object.assign({orgTypes:[],experience:[],categories:[],sellerTypes:[]},window.PROFILE_OPTS||{});
+const KPIS={},CFG_ERR=[];
+GROUPS.forEach(function(g){
+  const a=(window.KPI_DATA||{})[g];
+  if(!Array.isArray(a)||a.length<3||a.length>7||!a.every(function(k){return k&&typeof k.code==='string'&&k.code.trim();})){CFG_ERR.push(g);KPIS[g]=[];return;}
+  KPIS[g]=a.map(function(k){return {code:String(k.code).trim(),name:String(k.name||k.code),def:String(k.def||''),theme:String(k.theme||'')};});
+});
 const HASH=(location.hash||'').toLowerCase().replace('#','');
 const RESPONDENT=!!SHEET_URL&&HASH!=='admin';
-const HASH_GROUP={seller:'Seller',buyer:'Buyer',provider:'Service provider','service-provider':'Service provider'}[HASH]||null;
-function validKpis(k){
-  if(!k||typeof k!=='object')return {};
-  const out={};
-  DEFAULT_GROUPS.forEach(function(g){
-    if(Array.isArray(k[g])&&k[g].length===5&&k[g].every(function(x){return Array.isArray(x)&&typeof x[0]==='string'&&x[0].trim();}))out[g]=k[g].map(function(x){return [String(x[0]),String(x[1]||'')];});
-  });
-  return out;
-}
-const setup=RESPONDENT?{}:(lsGet('kif.setup.v1')||{});
+const HASH_GROUP=({seller:'Seller',buyer:'Buyer',provider:'Service provider','service-provider':'Service provider'}[HASH]||null);
+const setup=RESPONDENT?{}:(lsGet('kif.setup.v2')||{});
+
+function blankProfile(){return {id:'',org:'',orgType:'',deals:'',exp:'',cats:[],catOther:'',types:[]};}
 const state={
-  group:HASH_GROUP||'Seller',
+  group:HASH_GROUP||'Seller',chosen:!!HASH_GROUP,tIdx:0,savedT:[],
   mode:(CFG.mode||setup.mode)==='free'?'free':'guided',
   tol:[0,1,2].indexOf(CFG.tol)>=0?CFG.tol:([0,1,2].indexOf(setup.tol)>=0?setup.tol:1),
-  kpis:Object.assign(defaultKpis(),setup.kpis||{},validKpis(CFG.kpis)),
-  ranking:[],vals:[null,null,null,null,null,null,null],
+  profile:blankProfile(),
+  ranking:[],vals:[],
   notice:'',reason:null,confirm:null,demo:false,justSaved:false,
-  local:Array.isArray(lsGet('kif.saved.v1'))?lsGet('kif.saved.v1'):[],
+  local:Array.isArray(lsGet('kif.saved.v2'))?lsGet('kif.saved.v2'):[],
   remote:null,db:null,lastRec:null,sheetErr:'',dbErr:'',canWrite:null,saving:false,saveNote:'',viewGroup:'All',uploadNote:''
 };
-let SETS=buildSets(state.tol);
+/* group = who the respondent is. target = whose KPIs the respondent is rating in the form on screen.
+   Buyer: Seller KPIs and/or Service provider KPIs, depending on what they buy. Seller and Service provider: Buyer KPIs. */
+function targets(){
+  const d=state.profile.deals;
+  if(!state.chosen)return [];
+  if(state.group==='Buyer')return d==='products'?['Seller']:(d==='services'?['Service provider']:(d==='both'?['Seller','Service provider']:[]));
+  return ['Buyer'];
+}
+function T(){return targets()[state.tIdx]||'Seller';}
+function formsReady(){return targets().length>0;}
+function N(){return KPIS[T()].length;}
+function M(){return N()-2;}
+function CELLS(){return 2*N()-3;}
+function blankVals(){return new Array(CELLS()).fill(null);}
+state.vals=blankVals();
+const setCache={};
+function getSets(){const k=state.tol+'/'+N();return setCache[k]||(setCache[k]=buildSets(state.tol,N()));}
 
 let setupChain=Promise.resolve(),setupTimer=null;
 function pushSetup(){
   if(!state.db||state.canWrite===false)return;
   clearTimeout(setupTimer);
   setupTimer=setTimeout(function(){
-    const body=JSON.parse(JSON.stringify({kpis:state.kpis,mode:state.mode,tol:state.tol}));
+    const body={mode:state.mode,tol:state.tol};
     setupChain=setupChain.then(function(){return state.db.doc('config/setup').set(body);}).catch(function(){});
   },800);
 }
-function persistSetup(){lsSet('kif.setup.v1',{mode:state.mode,tol:state.tol,kpis:state.kpis});pushSetup();}
+function persistSetup(){lsSet('kif.setup.v2',{mode:state.mode,tol:state.tol});pushSetup();}
 function list(){return state.db?(state.remote||[]):state.local;}
-function shown(){return list().filter(function(r){return state.viewGroup==='All'||r.group===state.viewGroup;});}
-function kp(i){return state.kpis[state.group][i];}
-function name(i){return kp(i)[0];}
+function shown(){return list().filter(function(r){return state.viewGroup==='All'||r.target===state.viewGroup;});}
+function kpi(i){return KPIS[T()][i];}
+function name(i){return kpi(i).code;}
 function rankName(r){return name(state.ranking[r]);}
-function rankingDone(){return state.ranking.length===5;}
+function rankFull(r){return kpi(state.ranking[r]).name;}
+function rankingDone(){return state.ranking.length===N();}
 function anyAnswers(){return state.vals.some(function(v){return v!=null;});}
 function allAnswers(){return state.vals.every(function(v){return v!=null;});}
 
-/* cells: 0 = rank1 vs rank5; 1-3 = rank1 vs rank2..4; 4-6 = rank2..4 vs rank5 */
+/* cells: 0 = rank1 vs last rank; 1..m = rank1 vs rank2..(n-1); m+1..2m = rank2..(n-1) vs last rank */
 function cellPair(cell){
-  if(cell===0)return [0,4];
-  if(cell<=3)return [0,cell];
-  return [cell-3,4];
+  const m=M();
+  if(cell===0)return [0,N()-1];
+  if(cell<=m)return [0,cell];
+  return [cell-m,N()-1];
 }
 function allowed(cell){
   if(state.mode==='free')return [1,2,3,4,5];
-  return allowedValues(SETS,state.vals,cell);
+  return allowedValues(getSets(),state.vals,cell);
 }
-
-function resetAnswers(){state.vals=[null,null,null,null,null,null,null];state.reason=null;state.notice='';}
+function resetAnswers(){state.vals=blankVals();state.reason=null;state.notice='';}
 function clearForm(){state.ranking=[];resetAnswers();state.confirm=null;state.demo=false;state.justSaved=false;state.saveNote='';}
 
 function pick(cell,v){
   state.justSaved=false;state.saveNote='';
   const ok=allowed(cell);
   if(ok.indexOf(v)<0){
-    const why=reasonFor(SETS,state.vals,cell,v);
-    state.reason={cell:cell,v:v,why:why};
+    state.reason={cell:cell,v:v,why:reasonFor(getSets(),state.vals,cell,v)};
     renderAnswers();return;
   }
   state.reason=null;state.notice='';
   if(state.vals[cell]===v){
     state.vals[cell]=null;
-    if(cell===0&&state.vals.some(function(x){return x!=null;})){state.vals=[null,null,null,null,null,null,null];state.notice='Your Best vs Worst answer changed, so the other comparisons were cleared.';}
+    if(cell===0&&anyAnswers()){state.vals=blankVals();state.notice='Your Best vs Worst answer changed, so the other comparisons were cleared.';}
   }else{
     const hadOthers=state.vals.some(function(x,i){return i!==cell&&x!=null;});
     state.vals[cell]=v;
     if(cell===0){
-      if(hadOthers){state.vals=[v,null,null,null,null,null,null];state.notice='Your Best vs Worst answer changed, so the other comparisons were cleared. Please answer them again.';}
+      if(hadOthers){state.vals=blankVals();state.vals[0]=v;state.notice='Your Best vs Worst answer changed, so the other comparisons were cleared. Please answer them again.';}
     }else if(state.mode==='guided'){
-      const cleared=repair(SETS,state.vals,cell);
+      const cleared=repair(getSets(),state.vals,cell);
       if(cleared.length){
-        state.notice='Cleared '+cleared.length+' later answer'+(cleared.length>1?'s':'')+' that no longer fit: '+cleared.sort().map(function(c){return pairText(c);}).join('; ')+'. Please answer again.';
+        state.notice='Cleared '+cleared.length+' later answer'+(cleared.length>1?'s':'')+' that no longer fit: '+cleared.sort(function(a,b){return a-b;}).map(pairText).join('; ')+'. Please answer again.';
       }
     }
   }
@@ -351,17 +486,91 @@ function pick(cell,v){
 }
 function pairText(cell){const p=cellPair(cell);return rankName(p[0])+' vs '+rankName(p[1]);}
 
+/* ---------- profile ---------- */
+function typeLabel(){return state.group==='Service provider'?'Service provider type':'Seller type';}
+function profileMissing(){
+  const p=state.profile,m=[];
+  if(!clean(p.id))m.push('your GeM ID');
+  if(state.group==='Buyer'){
+    if(!clean(p.org))m.push('organization');
+    if(!p.orgType)m.push('organization type');
+    if(!p.deals)m.push('what you buy on GeM (products, services or both)');
+  }
+  if(!p.exp)m.push('experience on GeM');
+  if(!p.cats.length&&!clean(p.catOther))m.push('products or services');
+  if(state.group!=='Buyer'&&!p.types.length)m.push(typeLabel().toLowerCase());
+  return m;
+}
+function profileCols(group,p){
+  const cats=p.cats.concat(clean(p.catOther)?['Other: '+clean(p.catOther)]:[]).join('; ');
+  if(group==='Buyer')return {head:['Organization','Organization type','Experience on GeM','Buys on GeM','Products / services dealt'],val:[clean(p.org),clean(p.orgType),clean(p.exp),clean(DEALS_LABEL[p.deals]||''),clean(cats)]};
+  return {head:['Experience on GeM','Products / services dealt','Business type'],val:[clean(p.exp),clean(cats),clean(p.types.join('; '))]};
+}
+function selectHtml(id,label,opts,cur){
+  return '<label class="f" for="'+id+'">'+esc(label)+'<select id="'+id+'"><option value="">Select…</option>'+opts.map(function(o){return '<option'+(o===cur?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></label>';
+}
+function checksHtml(nameAttr,legend,opts,cur){
+  return '<fieldset><legend>'+esc(legend)+'</legend><div class="checks">'+opts.map(function(o){
+    return '<label><input type="checkbox" name="'+nameAttr+'" value="'+esc(o)+'"'+(cur.indexOf(o)>=0?' checked':'')+'><span>'+esc(o)+'</span></label>';
+  }).join('')+'</div></fieldset>';
+}
+function renderProfile(){
+  const g=state.group,p=state.profile;
+  const idLabel={'Buyer':'Your GeM Buyer ID','Seller':'Your GeM Seller ID','Service provider':'Your GeM Service Provider ID'}[g];
+  const catLegend={'Buyer':'What do you mainly buy on GeM? Products and services, tick all that apply.','Seller':'What do you mainly supply on GeM? Products and services, tick all that apply.','Service provider':'Which services do you mainly provide on GeM? Tick all that apply.'}[g];
+  let h='<div class="step-h"><div class="n">2</div><h2>About you</h2><span class="chip" id="profChip"></span></div>';
+  const idField='<label class="f" for="rid">'+idLabel+'<input type="text" id="rid" autocomplete="off" maxlength="60" value="'+esc(p.id)+'"></label>';
+  if(g==='Buyer'){
+    h+='<div class="row2">'+idField+'<label class="f" for="p_org">Organization<input type="text" id="p_org" autocomplete="off" maxlength="120" value="'+esc(p.org)+'"></label></div>';
+    h+='<div class="row2">'+selectHtml('p_orgType','Type of organization',OPT.orgTypes,p.orgType)+selectHtml('p_exp','Experience on GeM',OPT.experience,p.exp)+'</div>';
+    h+='<label class="f" for="p_deals">What do you buy on GeM?<select id="p_deals"'+(state.savedT.length?' disabled':'')+'><option value="">Select\u2026</option>'+DEALS.map(function(d){return '<option value="'+d[0]+'"'+(p.deals===d[0]?' selected':'')+'>'+esc(d[1])+'</option>';}).join('')+'</select><span class="small muted" style="font-weight:400">Products only: you rate the Seller KPIs. Services only: you rate the Service provider KPIs. Both: you fill two forms, the Seller KPIs first and then the Service provider KPIs.</span></label>';
+  }else{
+    h+='<div class="row2">'+idField+selectHtml('p_exp','Experience on GeM',OPT.experience,p.exp)+'</div>';
+  }
+  h+=checksHtml('cat',catLegend,OPT.categories,p.cats);
+  h+='<label class="f" for="p_catOther">Other products or services (optional)<input type="text" id="p_catOther" autocomplete="off" maxlength="120" value="'+esc(p.catOther)+'"></label>';
+  if(g!=='Buyer')h+=checksHtml('typ',typeLabel()+'. Tick all that apply.',OPT.sellerTypes,p.types);
+  $('sP').innerHTML=h;
+  updateProfChip();
+}
+function updateProfChip(){
+  const c=$('profChip');if(!c)return;
+  const miss=profileMissing().length===0;
+  c.className='chip '+(miss?'done':'todo');c.textContent=miss?'Done':'To do';
+}
+function profileChanged(){updateProfChip();renderReview();}
+
 /* ---------- rendering ---------- */
 function chip(done,locked){return '<span class="chip '+(done?'done':(locked?'':'todo'))+'">'+(done?'Done':(locked?'Locked':'To do'))+'</span>';}
 
+function renderGroup(){
+  const hint=!state.chosen?'Buyers rate the Seller and Service provider KPIs. Sellers and service providers rate the Buyer KPIs.'
+    :(state.group==='Buyer'?'You will rate the Seller KPIs, the Service provider KPIs or both, depending on what you buy.'
+    :'You will fill one form: the Buyer KPIs.');
+  let h='<div class="step-h"><div class="n">1</div><h2>Who is filling this form?</h2>'+chip(state.chosen,false)+'</div>';
+  h+='<label class="f" for="roleSel">Select whether you are a buyer, seller or service provider<select id="roleSel"><option value=""'+(state.chosen?'':' selected')+'>Select\u2026</option>'+GROUPS.map(function(g){return '<option'+(state.chosen&&state.group===g?' selected':'')+'>'+esc(g)+'</option>';}).join('')+'</select></label>';
+  h+='<p class="muted">'+esc(hint)+'</p>';
+  $('s1').innerHTML=h;
+}
+function renderKpiInfo(){
+  const t=T(),k=KPIS[t],tl=targets();
+  const who={'Seller':'sellers','Service provider':'service providers','Buyer':'buyers'}[t];
+  let h='<div class="step-h"><div class="n">3</div><h2>'+(tl.length>1?'Form '+(state.tIdx+1)+' of '+tl.length+': ':'')+'The '+k.length+' KPIs used to rate '+who+'</h2></div>';
+  h+='<p class="muted">You are rating the '+esc(t)+' KPIs. Read what each one measures, then rank them in the next step.</p><div class="defs">';
+  h+=k.map(function(x){
+    return '<div class="def"><div class="def-h"><b>'+esc(x.code)+'</b><span>'+esc(x.name)+'</span>'+(x.theme?'<span class="chip">'+esc(x.theme)+'</span>':'')+'</div>'+(x.def?'<p>'+esc(x.def)+'</p>':'')+'</div>';
+  }).join('');
+  h+='</div>';
+  $('sK').innerHTML=h;
+}
 function renderRank(){
-  const done=rankingDone();
-  let h='<div class="step-h"><div class="n">2</div><h2>Rank the KPIs</h2>'+chip(done,false)+'</div>';
-  h+='<p class="muted">Tap the most important KPI first, then the next, until all five are numbered. If two feel equal, put either one first. You can show that later with an equal number.</p>';
+  const done=rankingDone(),n=N();
+  let h='<div class="step-h"><div class="n">4</div><h2>Rank the KPIs</h2>'+chip(done,false)+'</div>';
+  h+='<p class="muted">Tap the most important KPI first, then the next, until all '+NWORD[n]+' are numbered. If two feel equal, put either one first. You can show that later with an equal number.</p>';
   h+='<div class="kpis">';
-  for(let i=0;i<5;i++){
+  for(let i=0;i<n;i++){
     const r=state.ranking.indexOf(i);
-    h+='<button type="button" class="kpi" data-kpi="'+i+'" aria-pressed="'+(r>=0)+'"'+(r>=0||done?' aria-disabled="true"':'')+'>'+(r>=0?'<span class="rk">'+(r+1)+'</span>':'')+'<b>'+esc(name(i))+'</b>'+(kp(i)[1]?'<span>'+esc(kp(i)[1])+'</span>':'')+'</button>';
+    h+='<button type="button" class="kpi" data-kpi="'+i+'" aria-pressed="'+(r>=0)+'"'+(r>=0||done?' aria-disabled="true"':'')+'>'+(r>=0?'<span class="rk">'+(r+1)+'</span>':'')+'<b>'+esc(name(i))+'</b><span>'+esc(kpi(i).name)+'</span></button>';
   }
   h+='</div>';
   if(state.ranking.length){
@@ -376,7 +585,6 @@ function renderRank(){
   }
   $('s2').innerHTML=h;
 }
-
 function optsHtml(cell,locked){
   const ok=locked?[]:allowed(cell),cur=state.vals[cell];
   const only=(!locked&&state.mode==='guided'&&ok.length===1&&cur==null)?ok[0]:null;
@@ -390,52 +598,53 @@ function optsHtml(cell,locked){
   return h;
 }
 function reasonText(rs){
-  const A=state.vals[0],t=state.tol,cell=rs.cell;
+  const A=state.vals[0],t=state.tol,cell=rs.cell,m=M();
   if(rs.why==='cap')return rs.v+' is higher than your Best vs Worst answer ('+A+'). No answer can be higher than that.';
-  if(rs.why==='order')return cell<=3?'Order rule: numbers in this list stay the same or go up from top to bottom.':'Order rule: numbers in this list stay the same or go down from top to bottom.';
+  if(rs.why==='order')return cell<=m?'Order rule: numbers in this list stay the same or go up from top to bottom.':'Order rule: numbers in this list stay the same or go down from top to bottom.';
   if(rs.why==='product')return 'Product check: with your other answers, '+rs.v+' would make them contradict each other. A KPI’s two numbers multiplied should be '+(A-t)+' to '+(A+t)+'.';
   return rs.v+' does not fit the order rule and the product check together with your other answers.';
 }
 function pairRow(cell,locked){
   const p=cellPair(cell),a=rankName(p[0]),b=rankName(p[1]);
   const rs=state.reason&&state.reason.cell===cell?state.reason:null;
-  return '<div class="pair"><div class="pair-q"><span><b>'+esc(a)+'</b> vs <b>'+esc(b)+'</b></span><small>How much more important is '+esc(a)+' than '+esc(b)+'?</small></div>'+optsHtml(cell,locked)+(rs?'<p class="why" role="status">'+esc(reasonText(rs))+'</p>':'')+'</div>';
+  return '<div class="pair"><div class="pair-q"><span><b>'+esc(a)+'</b> vs <b>'+esc(b)+'</b></span><small>How much more important is '+esc(rankFull(p[0]))+' than '+esc(rankFull(p[1]))+'?</small></div>'+optsHtml(cell,locked)+(rs?'<p class="why" role="status">'+esc(reasonText(rs))+'</p>':'')+'</div>';
 }
-
 function renderAnswers(){
-  const rd=rankingDone();
-  // step 3: best vs worst
-  let h='<div class="step-h"><div class="n">3</div><h2>Best compared with worst</h2>'+chip(state.vals[0]!=null,!rd)+'</div>';
+  const rd=rankingDone(),m=M(),n=N();
+  let h='<div class="step-h"><div class="n">5</div><h2>Best compared with worst</h2>'+chip(state.vals[0]!=null,!rd)+'</div>';
   if(!rd){h+='<p class="muted">Finish the ranking first.</p>';}
   else{
-    h+='<p class="muted">Your top KPI is <b>'+esc(rankName(0))+'</b> and your lowest is <b>'+esc(rankName(4))+'</b>. This answer is the biggest gap on the form. No other number can be higher than it.</p>';
+    h+='<p class="muted">Your top KPI is <b>'+esc(rankName(0))+'</b> and your lowest is <b>'+esc(rankName(n-1))+'</b>. This answer is the biggest gap on the form. No other number can be higher than it.</p>';
     h+='<div class="legend">'+[1,2,3,4,5].map(function(v){return '<div><b>'+v+'</b>'+LABEL[v]+'</div>';}).join('')+'</div>';
     h+=pairRow(0,false);
   }
   $('s3').innerHTML=h;$('s3').classList.toggle('locked',!rd);
 
-  // step 4
   const ready=rd&&state.vals[0]!=null;
-  let g='<div class="step-h"><div class="n">4</div><h2>Compare the other KPIs</h2>'+chip(allAnswers(),!ready)+'</div>';
-  if(!ready){g+='<p class="muted">Answer step 3 first.</p>';}
+  let g='<div class="step-h"><div class="n">6</div><h2>Compare the other KPIs</h2>'+chip(allAnswers(),!ready)+'</div>';
+  if(!ready){g+='<p class="muted">Answer step 5 first.</p>';}
   else{
     if(state.notice)g+='<p class="notice" role="status">'+esc(state.notice)+'</p>';
     if(state.mode==='guided')g+='<p class="muted">Greyed-out numbers would contradict your earlier answers. Tap one to see why.</p>';
     else g+='<p class="muted">Free mode: any number can be chosen. Problems are listed at the end.</p>';
     g+='<div class="part"><h3>Your top KPI against each of the others</h3><p>Going down this list, each KPI is less important, so the number stays the same or goes up.</p></div>';
-    g+=[1,2,3].map(function(c){return pairRow(c,false);}).join('');
+    for(let c=1;c<=m;c++)g+=pairRow(c,false);
     g+='<div class="part"><h3>Each of the others against your lowest KPI</h3><p>Going down this list, each KPI is less important, so the number stays the same or goes down.</p></div>';
-    g+=[4,5,6].map(function(c){return pairRow(c,false);}).join('');
+    for(let c=m+1;c<=2*m;c++)g+=pairRow(c,false);
   }
   $('s4').innerHTML=g;$('s4').classList.toggle('locked',!ready);
 }
-
+function afterSave(label,primary){
+  const tl=targets();
+  if(state.tIdx<tl.length-1)return '<p class="banner ok">Next: form '+(state.tIdx+2)+' of '+tl.length+', the '+esc(tl[state.tIdx+1])+' KPIs. Your details are kept.</p><div class="btns"><button type="button" class="btn primary" data-act="nextform">Continue to form '+(state.tIdx+2)+'</button></div>';
+  return '<div class="btns"><button type="button" class="btn'+(primary?' primary':'')+'" data-act="next">'+label+'</button></div>';
+}
 function renderReview(){
   const full=rankingDone()&&allAnswers();
-  let h='<div class="step-h"><div class="n">5</div><h2>Review and save</h2>'+chip(false,!full)+'</div>';
+  let h='<div class="step-h"><div class="n">7</div><h2>Review and save</h2>'+chip(false,!full)+'</div>';
   if(!full){h+='<p class="muted">Complete the steps above to see the checks.</p>';$('s5').innerHTML=h;$('s5').classList.add('locked');return;}
   $('s5').classList.remove('locked');
-  const r=runChecks(state.vals,state.tol),A=state.vals[0];
+  const r=runChecks(state.vals,state.tol,N()),A=state.vals[0];
   h=h.replace('<span class="chip todo">To do</span>',r.ok?'<span class="chip done">Passed</span>':'<span class="chip todo">Needs a look</span>');
   h+='<div class="order">'+state.ranking.map(function(k,i){return '<span class="o"><i>'+(i+1)+'</i>'+esc(name(k))+'</span>';}).join('')+'</div>';
   h+='<div class="scroll"><table><thead><tr><th>Check</th><th>Result</th></tr></thead><tbody>';
@@ -451,45 +660,48 @@ function renderReview(){
   if(state.demo){
     h+='<p class="banner bad">These are example answers and cannot be saved.</p><div class="btns"><button type="button" class="btn" data-act="next">Clear form</button></div>';
   }else if(state.justSaved&&SHEET_URL){
-    const st=state.lastRec?state.lastRec.sheet:'pending';
-    if(st==='confirmed')h+='<p class="banner ok" role="status">Thank you. Your response has been recorded.</p>';
-    else if(st==='sent')h+='<p class="banner ok" role="status">Thank you. Your response was sent.</p>';
+    const st=state.lastRec?state.lastRec.sheet:'pending',more=state.tIdx<targets().length-1;
+    const okMsg=more?'Form '+(state.tIdx+1)+' of '+targets().length+' recorded.':'Thank you. Your response has been recorded.';
+    if(st==='confirmed')h+='<p class="banner ok" role="status">'+okMsg+'</p>';
+    else if(st==='sent')h+='<p class="banner ok" role="status">'+(more?okMsg:'Thank you. Your response was sent.')+'</p>';
     else h+='<p class="banner bad" role="status">Your answers could not be sent yet. They are kept on this device and will be sent when the connection returns. Keep this page open, or press Try again.'+(state.sheetErr&&!RESPONDENT?' Details: '+esc(state.sheetErr):'')+'</p><div class="btns"><button type="button" class="btn primary" data-act="retry">Try again</button></div>';
-    h+='<div class="btns"><button type="button" class="btn" data-act="next">Start a new response</button></div>';
+    h+=afterSave('Start a new response',false);
   }else if(state.justSaved){
-    h+='<p class="banner ok" role="status">'+(state.db&&!state.saveNote?'Saved to the shared database.':'Saved. Copy the rows below into the calculator, then start the next respondent.')+'</p>'+(state.saveNote?'<p class="banner bad">'+esc(state.saveNote)+'</p>':'')+'<div class="btns"><button type="button" class="btn primary" data-act="next">Next respondent</button></div>';
+    h+='<p class="banner ok" role="status">'+(state.db&&!state.saveNote?'Saved to the shared database.':'Saved. Copy the rows below into the calculator, then start the next respondent.')+'</p>'+(state.saveNote?'<p class="banner bad">'+esc(state.saveNote)+'</p>':'')+afterSave('Next respondent',true);
   }else{
-    const rid=clean($('rid').value);
-    if(rid&&list().some(function(x){return x.id===rid&&x.group===state.group;}))h+='<p class="notice">A response with ID "'+esc(rid)+'" is already saved for this group. Check the ID before saving again.</p>';
+    const miss=profileMissing(),rid=clean(state.profile.id);
+    if(miss.length)h+='<p class="notice" role="status">Before saving, please fill in step 2: '+esc(miss.join(', '))+'.</p>';
+    if(rid&&list().some(function(x){return x.id===rid&&x.target===T();}))h+='<p class="notice">A response with ID "'+esc(rid)+'" is already saved for these KPIs on this device. Check the ID before saving again.</p>';
     if(state.db&&state.canWrite===false)h+='<p class="banner bad">You can view responses but not save new ones. Ask the owner for Contributor access.</p>';
-    else h+='<div class="btns"><button type="button" class="btn primary" data-act="save"'+(state.saving?' disabled':'')+'>'+(state.saving?'Saving\u2026':'Save this response')+'</button></div>';
+    else h+='<div class="btns"><button type="button" class="btn primary" data-act="save"'+(state.saving||miss.length?' disabled':'')+'>'+(state.saving?'Saving…':'Save this response')+'</button></div>';
   }
   $('s5').innerHTML=h;
 }
 
 /* ---------- records ---------- */
-function clean(s){return String(s).replace(/[\t\r\n]+/g,' ').trim();}
-function makeRecord(){
-  const r=state.ranking,v=state.vals,A=v[0];
-  const bo=[0,0,0,0,0],ow=[0,0,0,0,0];
-  bo[r[0]]=1;ow[r[0]]=A;
-  bo[r[1]]=v[1];ow[r[1]]=v[4];
-  bo[r[2]]=v[2];ow[r[2]]=v[5];
-  bo[r[3]]=v[3];ow[r[3]]=v[6];
-  bo[r[4]]=A;ow[r[4]]=1;
+function buildRec(ranking,v,prof,role,tabPrefix){
+  const n=N(),m=n-2,A=v[0],bo=new Array(n).fill(0),ow=new Array(n).fill(0);
+  bo[ranking[0]]=1;ow[ranking[0]]=A;
+  for(let k=1;k<=m;k++){bo[ranking[k]]=v[k];ow[ranking[k]]=v[m+k];}
+  bo[ranking[n-1]]=A;ow[ranking[n-1]]=1;
+  const pc=profileCols(role,prof),id=clean(prof.id);
   return {
-    id:clean($('rid').value),ref:clean($('rid').value)+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),group:state.group,mode:state.mode,tol:state.tol,at:new Date().toISOString(),
-    names:[0,1,2,3,4].map(name),ranking:r.map(name),best:name(r[0]),worst:name(r[4]),
-    A:A,pairs:v.slice(),bo:bo,ow:ow
+    id:id,ref:id+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),role:role,target:T(),tab:(tabPrefix||'')+T()+' KPIs',mode:state.mode,tol:state.tol,at:new Date().toISOString(),
+    names:KPIS[T()].map(function(k){return k.code;}),ranking:ranking.map(name),best:name(ranking[0]),worst:name(ranking[n-1]),
+    A:A,pairs:v.slice(),bo:bo,ow:ow,pHead:pc.head,pVal:pc.val
   };
 }
-function calcRow(rec){return [rec.id,rec.group,rec.best,rec.worst].concat(rec.bo,rec.ow).map(clean).join('\t');}
+function makeRecord(){return buildRec(state.ranking,state.vals,state.profile,state.group);}
+function calcRow(rec){return [rec.id,rec.role,rec.best,rec.worst].concat(rec.bo,rec.ow).map(clean).join('\t');}
 function csvCell(s){s=String(s);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
 function fullCsv(){
-  const head=['id','group','mode','tolerance','saved_at','ranking','best','worst','A_best_vs_worst','best_vs_2nd','best_vs_3rd','best_vs_4th','2nd_vs_worst','3rd_vs_worst','4th_vs_worst'];
+  const maxP=Math.max.apply(null,[0].concat(shown().map(function(r){return r.pairs.length;})));
+  const head=['id','respondent_group','kpi_group_rated','profile','mode','tolerance','saved_at','ranking','best','worst'];
+  for(let i=0;i<maxP;i++)head.push(i===0?'best_vs_worst':'pair_'+i);
   const lines=[head.join(',')];
   shown().forEach(function(rec){
-    lines.push([rec.id,rec.group,rec.mode,rec.tol,rec.at,rec.ranking.join(' > '),rec.best,rec.worst].concat(rec.pairs).map(csvCell).join(','));
+    const prof=(rec.pHead||[]).map(function(h,i){return h+': '+(rec.pVal||[])[i];}).join(' | ');
+    lines.push([rec.id,rec.role,rec.target,prof,rec.mode,rec.tol,rec.at,rec.ranking.join(' > '),rec.best,rec.worst].concat(rec.pairs).map(csvCell).join(','));
   });
   return lines.join('\n');
 }
@@ -502,38 +714,34 @@ function renderSaved(){
   if(state.dbErr)h+='<p class="notice">Shared database unavailable ('+esc(state.dbErr)+'). Using this browser only.</p>';
   if(state.db&&state.local.length)h+='<div class="confirm">'+state.local.length+' response'+(state.local.length>1?'s are':' is')+' stored only on this device. <button type="button" class="btn" data-act="upload">Upload to shared database</button></div>';
   if(state.uploadNote)h+='<p class="notice" role="status">'+esc(state.uploadNote)+'</p>';
-  if(!total){
-    $('savedBody').innerHTML=h+'<p class="muted">Nothing saved yet.</p>';return;
-  }
-  h+='<label class="f" style="max-width:260px">Show<select id="viewGroup">'+['All'].concat(DEFAULT_GROUPS).map(function(g){return '<option'+(g===state.viewGroup?' selected':'')+'>'+esc(g)+'</option>';}).join('')+'</select></label>';
-  if(!rows.length){$('savedBody').innerHTML=h+'<p class="muted">No responses for this group.</p>';return;}
-  h+='<div class="scroll"><table><thead><tr><th>ID</th><th>Group</th><th>Best</th><th>Worst</th><th>Best vs Worst</th><th></th></tr></thead><tbody>';
+  if(!total){$('savedBody').innerHTML=h+'<p class="muted">Nothing saved yet.</p>';return;}
+  h+='<label class="f" style="max-width:260px">Show KPI group<select id="viewGroup">'+['All'].concat(GROUPS).map(function(g){return '<option'+(g===state.viewGroup?' selected':'')+'>'+esc(g)+'</option>';}).join('')+'</select></label>';
+  if(!rows.length){$('savedBody').innerHTML=h+'<p class="muted">No responses for these KPIs.</p>';return;}
+  h+='<div class="scroll"><table><thead><tr><th>ID</th><th>Respondent</th><th>KPIs rated</th><th>Best</th><th>Worst</th><th>Best vs Worst</th><th></th></tr></thead><tbody>';
   rows.forEach(function(rec,i){
-    h+='<tr><td>'+esc(rec.id)+'</td><td>'+esc(rec.group)+'</td><td>'+esc(rec.best)+'</td><td>'+esc(rec.worst)+'</td><td>'+esc(rec.A)+'</td><td><button type="button" class="btn" data-rm="'+i+'">Remove</button></td></tr>';
+    h+='<tr><td>'+esc(rec.id)+'</td><td>'+esc(rec.role)+'</td><td>'+esc(rec.target)+'</td><td>'+esc(rec.best)+'</td><td>'+esc(rec.worst)+'</td><td>'+esc(rec.A)+'</td><td><button type="button" class="btn" data-rm="'+i+'">Remove</button></td></tr>';
   });
   h+='</tbody></table></div>';
-  h+='<div style="display:grid;gap:6px"><h3>Rows for the calculator</h3><p class="small muted">Paste into the Responses sheet from row 7. Columns: ID, group, best, worst, five Best-to-Others, five Others-to-Worst, in the order of the KPI list in Settings. Use one workbook per group.</p>'
+  h+='<div style="display:grid;gap:6px"><h3>Rows for the calculator</h3><p class="small muted">Paste into the Responses sheet from row 7. Columns: ID, group, best, worst, then Best-to-Others and Others-to-Worst for each KPI, in the order of the KPI list in Settings. Use one workbook per group.</p>'
     +'<textarea id="outRows" rows="'+Math.min(8,rows.length+1)+'" readonly>'+esc(rows.map(calcRow).join('\n'))+'</textarea>'
     +'<div class="btns"><button type="button" class="btn primary" data-copy="outRows">Copy rows</button></div></div>';
-  h+='<div style="display:grid;gap:6px"><h3>Full records (CSV)</h3><p class="small muted">Includes ranking, mode, tolerance and time saved.</p>'
+  h+='<div style="display:grid;gap:6px"><h3>Full records (CSV)</h3><p class="small muted">Includes the profile answers, ranking, mode, tolerance and time saved.</p>'
     +'<textarea id="outCsv" rows="6" readonly>'+esc(fullCsv())+'</textarea>'
     +'<div class="btns"><button type="button" class="btn" data-copy="outCsv">Copy CSV</button></div></div>';
   $('savedBody').innerHTML=h;
 }
-function makeId(){
-  const pre={'Buyer':'B','Seller':'S','Service provider':'P'}[state.group]||'X';
-  const ab='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let r='';
-  for(let i=0;i<4;i++)r+=ab[Math.floor(Math.random()*ab.length)];
-  return pre+'-'+r;
-}
-function sheetHeader(names){
-  return ['Respondent ID','Group','Best KPI','Worst KPI']
-    .concat(names.map(function(n){return 'Best-to-Others: '+n;}),names.map(function(n){return 'Others-to-Worst: '+n;}),
-      ['Ranking','Best vs Worst','Best vs 2nd','Best vs 3rd','Best vs 4th','2nd vs Worst','3rd vs Worst','4th vs Worst','Mode','Tolerance','Saved at','Ref']);
+
+/* ---------- Google Sheet ---------- */
+function sheetHeader(rec){
+  const n=rec.names.length,top=[],bot=[];
+  for(let k=2;k<=n-1;k++){top.push('Best vs '+ord(k));bot.push(ord(k)+' vs Worst');}
+  return ['GeM ID','Respondent group','KPI group rated'].concat(rec.pHead,['Best KPI','Worst KPI'],
+    rec.names.map(function(x){return 'Best-to-Others: '+x;}),rec.names.map(function(x){return 'Others-to-Worst: '+x;}),
+    ['Ranking','Best vs Worst'],top,bot,['Mode','Tolerance','Saved at','Ref']);
 }
 function sheetPayload(rec){
-  const row=[rec.id,rec.group,rec.best,rec.worst].concat(rec.bo,rec.ow,[rec.ranking.join(' > ')],rec.pairs,[rec.mode,rec.tol,rec.at,rec.ref]);
-  return {key:SHEET_KEY,ref:rec.ref,group:rec.group,header:sheetHeader(rec.names),row:row};
+  const row=[rec.id,rec.role,rec.target].concat(rec.pVal,[rec.best,rec.worst],rec.bo,rec.ow,[rec.ranking.join(' > ')],rec.pairs,[rec.mode,rec.tol,rec.at,rec.ref]);
+  return {key:SHEET_KEY,ref:rec.ref,group:rec.tab+TAB_SUFFIX,header:sheetHeader(rec),row:row};
 }
 async function sendToSheet(rec){
   const body=JSON.stringify(sheetPayload(rec));
@@ -559,34 +767,38 @@ async function flushOutbox(){
       try{rec.sheet=await sendToSheet(rec);}catch(e){state.sheetErr=String(e&&e.message||e);break;}
     }
   }finally{flushing=false;}
-  lsSet('kif.saved.v1',state.local);
+  lsSet('kif.saved.v2',state.local);
   renderReview();renderSaved();
 }
 async function sendTest(){
-  const note=$('testNote');note.textContent='Sending\u2026';
-  const names=[0,1,2,3,4].map(name);
-  const rec={id:'TEST',ref:'TEST-'+Date.now().toString(36),group:'TEST',mode:state.mode,tol:state.tol,at:new Date().toISOString(),names:names,ranking:names,best:names[0],worst:names[4],A:5,pairs:[5,2,3,3,3,2,2],bo:[1,2,3,3,5],ow:[5,3,2,2,1]};
+  const note=$('testNote');note.textContent='Sending…';
+  const n=N(),s=getSets(),ex=(s.full.find(function(r){return r[0]===4;})||s.full[0]).slice();
+  const prof={id:'TEST',deals:'products',org:'Test organization',orgType:OPT.orgTypes[0]||'x',exp:OPT.experience[0]||'x',cats:OPT.categories.slice(0,1),catOther:'',types:OPT.sellerTypes.slice(0,1)};
+  const rec=buildRec([...Array(n).keys()],ex,prof,state.group,'TEST ');
   try{const r=await sendToSheet(rec);note.textContent=r==='confirmed'?'Sheet confirmed the row.':'Sent. The browser cannot read the reply, so check the TEST tab.';}
   catch(e){note.textContent='Failed: '+String(e&&e.message||e);}
 }
 async function doSave(){
   if(state.saving)return;
+  if(profileMissing().length){renderReview();return;}
   state.saving=true;state.saveNote='';renderReview();
   const rec=makeRecord();
+  state.savedT.push(T());
+  const dsel=$('p_deals');if(dsel)dsel.disabled=true;
   if(SHEET_URL){
     rec.sheet='pending';
-    state.local.push(rec);state.lastRec=rec;lsSet('kif.saved.v1',state.local);
+    state.local.push(rec);state.lastRec=rec;lsSet('kif.saved.v2',state.local);
     try{rec.sheet=await sendToSheet(rec);state.sheetErr='';}
     catch(err){rec.sheet='pending';state.sheetErr=String(err&&err.message||err);}
-    lsSet('kif.saved.v1',state.local);
+    lsSet('kif.saved.v2',state.local);
     state.justSaved=true;state.saving=false;renderReview();renderSaved();return;
   }
   try{
     if(state.db){await state.db.collection('responses').add(JSON.parse(JSON.stringify(rec)));}
-    else{state.local.push(rec);lsSet('kif.saved.v1',state.local);}
+    else{state.local.push(rec);lsSet('kif.saved.v2',state.local);}
     state.justSaved=true;
   }catch(err){
-    state.local.push(rec);lsSet('kif.saved.v1',state.local);
+    state.local.push(rec);lsSet('kif.saved.v2',state.local);
     state.justSaved=true;
     state.saveNote='The shared database did not accept this save ('+((err&&err.code)||'error')+'). The response was kept in this browser. Upload it later from the Saved responses section.';
   }
@@ -599,18 +811,18 @@ async function removeRec(i){
     catch(err){state.uploadNote='Could not remove ('+((err&&err.code)||'error')+').';renderSaved();}
   }else{
     const k=state.local.indexOf(rec);
-    if(k>=0){state.local.splice(k,1);lsSet('kif.saved.v1',state.local);}
+    if(k>=0){state.local.splice(k,1);lsSet('kif.saved.v2',state.local);}
     renderSaved();
   }
 }
 async function uploadLocal(){
   if(!state.db)return;
-  state.uploadNote='Uploading\u2026';renderSaved();
+  state.uploadNote='Uploading…';renderSaved();
   let done=0;
   try{
     while(state.local.length){
       await state.db.collection('responses').add(JSON.parse(JSON.stringify(state.local[0])));
-      state.local.shift();lsSet('kif.saved.v1',state.local);done++;
+      state.local.shift();lsSet('kif.saved.v2',state.local);done++;
     }
     state.uploadNote='Uploaded '+done+' response'+(done===1?'':'s')+'.';
   }catch(err){
@@ -621,11 +833,9 @@ async function uploadLocal(){
 function applyRemoteSetup(d){
   if(!d||typeof d!=='object')return;
   if(state.ranking.length||anyAnswers())return;
-  const ok=d.kpis&&DEFAULT_GROUPS.every(function(g){return Array.isArray(d.kpis[g])&&d.kpis[g].length===5&&d.kpis[g].every(function(k){return Array.isArray(k)&&typeof k[0]==='string';});});
-  if(ok)state.kpis=d.kpis;
   if(d.mode==='free'||d.mode==='guided')state.mode=d.mode;
-  if([0,1,2].indexOf(d.tol)>=0){state.tol=d.tol;SETS=buildSets(state.tol);}
-  lsSet('kif.setup.v1',{mode:state.mode,tol:state.tol,kpis:state.kpis});
+  if([0,1,2].indexOf(d.tol)>=0)state.tol=d.tol;
+  lsSet('kif.setup.v2',{mode:state.mode,tol:state.tol});
   renderAll();
 }
 async function initDb(){
@@ -651,15 +861,15 @@ async function initDb(){
 function renderSetup(){
   $('modeGuided').checked=state.mode==='guided';$('modeFree').checked=state.mode==='free';
   $('tol').value=String(state.tol);
-  $('setupGroup').textContent=state.group;
-  $('setupSummary').textContent=(state.mode==='guided'?'Guided':'Free')+' · tolerance ±'+state.tol+' · '+state.group;
-  let h='';
-  for(let i=0;i<5;i++){
-    h+='<div class="kpi-edit"><input type="text" data-ke="'+i+'" data-f="0" value="'+esc(kp(i)[0])+'" aria-label="KPI '+(i+1)+' code"><input type="text" data-ke="'+i+'" data-f="1" value="'+esc(kp(i)[1])+'" placeholder="Full name (optional, shown under the code)" aria-label="KPI '+(i+1)+' full name"></div>';
-  }
-  $('kpiEdit').innerHTML=h;
+  $('setupSummary').textContent=(state.mode==='guided'?'Guided':'Free')+' · tolerance ±'+state.tol;
 }
-function renderAll(){renderSetup();renderRank();renderAnswers();renderReview();renderSaved();}
+function applyVisibility(){
+  $('sP').hidden=!state.chosen;
+  ['sK','s2','s3','s4','s5'].forEach(function(id){$(id).hidden=!formsReady();});
+}
+function renderAll(){
+  renderSetup();renderGroup();renderProfile();renderKpiInfo();renderRank();renderAnswers();renderReview();renderSaved();applyVisibility();
+}
 
 /* ---------- events ---------- */
 document.addEventListener('click',function(e){
@@ -673,7 +883,8 @@ document.addEventListener('click',function(e){
   const act=t.dataset.act;
   if(act==='upload'){uploadLocal();return;}
   if(act==='retry'){flushOutbox();return;}
-  if(act==='next'){clearForm();$('rid').value=RESPONDENT?makeId():'';renderAll();window.scrollTo(0,0);return;}
+  if(act==='next'){state.tIdx=0;state.savedT=[];clearForm();state.profile=blankProfile();renderAll();window.scrollTo(0,0);return;}
+  if(act==='nextform'){state.tIdx++;clearForm();renderAll();$('sK').scrollIntoView();return;}
   if(act==='undo'){state.ranking.pop();renderRank();renderAnswers();renderReview();return;}
   if(act==='rerank'){
     if(anyAnswers()){state.confirm='rerank';renderRank();}
@@ -682,11 +893,7 @@ document.addEventListener('click',function(e){
   }
   if(act==='rerank-yes'){state.ranking=[];resetAnswers();state.confirm=null;state.demo=false;renderRank();renderAnswers();renderReview();return;}
   if(act==='confirm-no'){state.confirm=null;renderRank();return;}
-  if(act==='save'){
-    if(!clean($('rid').value)){$('rid').focus();$('rid').style.borderColor='var(--bad)';return;}
-    $('rid').style.borderColor='';
-    doSave();return;
-  }
+  if(act==='save'){doSave();return;}
   if(t.dataset.rm!=null){
     if(t.dataset.arm==='1'){removeRec(+t.dataset.rm);return;}
     t.dataset.arm='1';t.textContent='Confirm';
@@ -703,42 +910,59 @@ document.addEventListener('click',function(e){
     return;
   }
   if(t.id==='fillExample'){
-    state.ranking=[0,1,2,3,4];state.vals=[5,2,3,3,3,2,2];state.reason=null;state.notice='';state.demo=true;state.justSaved=false;
-    if(state.mode==='guided'&&!feasible(SETS,state.vals)){state.vals=[5,1,1,1,5,5,5];}
-    renderRank();renderAnswers();renderReview();return;
+    const s=getSets(),ex=(s.full.find(function(r){return r[0]===4;})||s.full[0]).slice();
+    state.chosen=true;if(state.group==='Buyer'&&!state.profile.deals)state.profile.deals='products';
+    state.ranking=[...Array(N()).keys()];state.vals=ex;state.reason=null;state.notice='';state.demo=true;state.justSaved=false;
+    renderAll();return;
   }
   if(t.id==='sendTest'){sendTest();return;}
   if(t.id==='resetSetup'){
-    state.mode='guided';state.tol=1;state.kpis=defaultKpis();SETS=buildSets(1);persistSetup();clearForm();renderAll();return;
+    state.mode='guided';state.tol=1;persistSetup();clearForm();renderAll();return;
   }
 });
 document.addEventListener('change',function(e){
   const t=e.target;
+  if(t.id==='roleSel'){
+    const id=state.profile.id;
+    state.chosen=!!t.value;if(t.value)state.group=t.value;
+    state.tIdx=0;state.savedT=[];clearForm();state.profile=blankProfile();state.profile.id=id;
+    renderAll();return;
+  }
+  if(t.id==='p_deals'){
+    state.profile.deals=t.value;state.tIdx=0;clearForm();
+    renderKpiInfo();renderRank();renderAnswers();renderReview();applyVisibility();updateProfChip();return;
+  }
   if(t.name==='mode'){state.mode=t.value;persistSetup();resetAnswers();renderSetup();renderAnswers();renderReview();return;}
-  if(t.id==='tol'){state.tol=+t.value;SETS=buildSets(state.tol);persistSetup();resetAnswers();renderSetup();renderAnswers();renderReview();return;}
+  if(t.id==='tol'){state.tol=+t.value;persistSetup();resetAnswers();renderSetup();renderAnswers();renderReview();return;}
   if(t.id==='viewGroup'){state.viewGroup=t.value;renderSaved();return;}
-  if(t.id==='grp'){state.group=t.value;clearForm();if(RESPONDENT)$('rid').value=makeId();renderAll();return;}
+  if(t.id==='p_orgType'){state.profile.orgType=t.value;profileChanged();return;}
+  if(t.id==='p_exp'){state.profile.exp=t.value;profileChanged();return;}
+  if(t.name==='cat'||t.name==='typ'){
+    const key=t.name==='cat'?'cats':'types';
+    state.profile[key]=[].slice.call(document.querySelectorAll('input[name="'+t.name+'"]:checked')).map(function(x){return x.value;});
+    profileChanged();return;
+  }
 });
 document.addEventListener('input',function(e){
   const t=e.target;
-  if(t.id==='rid'){renderReview();return;}
-  if(t.dataset&&t.dataset.ke!=null){
-    const i=+t.dataset.ke,f=+t.dataset.f;
-    state.kpis[state.group][i][f]=t.value;persistSetup();
-    renderRank();renderAnswers();renderReview();
-  }
+  if(t.id==='rid'){state.profile.id=t.value;profileChanged();return;}
+  if(t.id==='p_org'){state.profile.org=t.value;profileChanged();return;}
+  if(t.id==='p_catOther'){state.profile.catOther=t.value;profileChanged();return;}
 });
-$('grp').value=state.group;
+
 if(SHEET_URL)$('sheetBox').hidden=false;
-if(RESPONDENT){
-  $('setup').hidden=true;$('s6').hidden=true;
-  const rid=$('rid');rid.readOnly=true;rid.value=makeId();
-  rid.parentNode.firstChild.nodeValue='Your reference';
-  if(HASH_GROUP){$('grp').parentNode.hidden=true;}
+if(RESPONDENT){$('setup').hidden=true;$('s6').hidden=true;}
+if(HASH_GROUP)$('s1').hidden=true;
+if(CFG_ERR.length){
+  const b=$('cfgErr');b.hidden=false;
+  b.textContent='Form setup problem: the KPI list for '+CFG_ERR.join(', ')+' needs 3 to 7 KPIs, each with a code. Check KPI_DATA at the top of the file.';
+  ['s1','sP','sK','s2','s3','s4','s5','s6'].forEach(function(id){$(id).hidden=true;});
+}else{
+  renderAll();
+  if(HASH_GROUP)$('s1').hidden=true;
+  initDb();
+  if(SHEET_URL){window.addEventListener('online',flushOutbox);flushOutbox();}
 }
-renderAll();
-initDb();
-if(SHEET_URL){window.addEventListener('online',flushOutbox);flushOutbox();}
 })();
 </script>
 
