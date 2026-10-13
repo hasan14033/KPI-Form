@@ -79,6 +79,9 @@ legend{font-size:14px;font-weight:600;padding:0;margin-bottom:6px}
 .def-h{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
 .def-h b{font-size:16px}
 .def p{font-size:14px;color:var(--muted)}
+.sub{display:grid;gap:8px;margin-top:4px;padding-left:12px;border-left:3px solid var(--accent-soft)}
+.sub-i{display:grid;gap:2px}
+.sub-i b{font-size:14px}
 
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;font-size:14px}
 .btn:hover{background:var(--surface-2)}
@@ -152,19 +155,20 @@ details.setup>summary span{font-weight:400;color:var(--muted);font-size:14px}
         sheetKey   : the same key as KEY in the Apps Script.
         mode       : 'guided' (only consistent numbers can be picked) or 'free'.
         tol        : 0, 1 or 2 (product tolerance).
-        tabSuffix  : added to every tab name in the sheet. Change it (for example ' v3') whenever the columns of the
-                     form change, so new rows go to fresh tabs with the right headers.
+        tabSuffix  : added to the tab name in the sheet, one entry per KPI group. Change the entry (for example ' v4')
+                     whenever the KPIs of that group change, so new rows go to a fresh tab with the right headers.
    2. PROFILE_OPTS : the choices shown in the "About you" step.
    3. KPI_DATA     : the KPIs of each group. 3 to 7 KPIs per group. Order here = column order in the sheet.
                      code = short name used on buttons and in the sheet, name = full name, def = what it measures,
                      theme = the group the KPI belongs to.
+                     parts (optional) = components of a combined KPI: [{label,name,def},...], shown under the KPI.
    ====================================================================== */
 window.KPI_CONFIG={
   sheetUrl:'https://script.google.com/macros/s/AKfycbxdt5is8X7Xq5QPaN4wy66yTr9Z9tMcWjvmDdwZOoERMcb5zc7oPLPGGxfA-abrF-ey/exec',
   sheetKey:'GeMIITD#2026',
   mode:'guided',
   tol:1,
-  tabSuffix:' v2'
+  tabSuffix:{'Seller':' v2','Service provider':' v3','Buyer':' v3'}
 };
 
 window.PROFILE_OPTS={
@@ -225,10 +229,12 @@ window.KPI_DATA={
   "Buyer":[
     {code:"BPI",name:"Buyer Payment Index",theme:"Payment Reliability & Financial Discipline",
      def:"A composite 0-100 score measuring how reliably a buyer meets contractual payment milestones, combining on-time payment rate, severity of delays against the SLA, and consistency of delays across milestones. The score is anchored to the on-time rate, with delay severity and variability applied as deductions."},
-    {code:"BFR",name:"Bid Fulfilment Rate",theme:"Procurement Discipline",
-     def:"Measures the effectiveness of a buyer to convert a published bid into a purchase order within the Bid Offer Validity period (initial or extended). Applies once financials are opened. A bid where Offer Validity is not sought for X months past Offer Validity expiry is scored zero; cancelled bids are excluded from scoring (no reward, no penalty)."},
-    {code:"BOT",name:"Bid Order Timeliness",theme:"Procurement Discipline",
-     def:"Measures a buyer's adherence to the originally committed bid offer validity period for issuing Purchase Orders. It is calculated only for bids with at least one PO issued."},
+    {code:"BAR",name:"Bid Adherence Rate",theme:"Procurement Discipline",
+     def:"Shows how reliably a buyer completes the bids it publishes. It looks at two things:",
+     parts:[
+       {label:"Component 1",name:"Bid Fulfilment Rate",def:"Whether the buyer turns a published bid into a purchase order within the Bid Offer Validity period. A bid scores zero if the buyer does not seek an extension of the offer validity within X months after the validity period ends. Bids cancelled by the buyer are left out of the score."},
+       {label:"Component 2",name:"Bid Order Timeliness",def:"Whether the buyer issues purchase orders within the validity period that was originally committed. It is measured only for bids that have at least one purchase order."}
+     ]},
     {code:"CBPR",name:"Category Bid Preference Rate",theme:"Procurement Standardisation & Efficiency",
      def:"Measures the share of a buyer’s procurement done through category bidding versus custom bidding. Meeting or exceeding a defined threshold earns bonus points."},
     {code:"BOCR",name:"Buyer Order Cancellation Rate",theme:"Contract Management & Contractual Reliability",
@@ -242,7 +248,9 @@ window.KPI_DATA={
     {code:"OIGR",name:"On-Time Invoice Generation Rate",theme:"Billing & Payment Compliance",
      def:"Percentage of invoices raised by the service provider within X calendar days (Configurable by GeM FMT) of the contractually agreed billing due date, measured over a rolling window."},
     {code:"SPCCS",name:"Service Provider Contract Cancellation Score",theme:"Contractual reliability",
-     def:"The KPI scores the service provider on the basis of contract completion rate in a rolling window penalising full and partial cancellations that are attributable to service provider."}
+     def:"The KPI scores the service provider on the basis of contract completion rate in a rolling window penalising full and partial cancellations that are attributable to service provider."},
+    {code:"SOR",name:"Sahay Overdue Rate",theme:"Financial Discipline",
+     def:"Measures the share of a service provider’s Sahay loans that are overdue within the rolling window, expressed as a percentage of loans disbursed."}
   ]
 };
 </script>
@@ -383,13 +391,13 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 const CFG=window.KPI_CONFIG||{};
 const SHEET_URL=String(CFG.sheetUrl||'').trim();
 const SHEET_KEY=String(CFG.sheetKey||'');
-const TAB_SUFFIX=String(CFG.tabSuffix==null?'':CFG.tabSuffix);
+function tabSuffixFor(target){const s=CFG.tabSuffix;if(s&&typeof s==='object')return String(s[target]==null?'':s[target]);return String(s==null?'':s);}
 const OPT=Object.assign({orgTypes:[],experience:[],categories:[],sellerTypes:[]},window.PROFILE_OPTS||{});
 const KPIS={},CFG_ERR=[];
 GROUPS.forEach(function(g){
   const a=(window.KPI_DATA||{})[g];
   if(!Array.isArray(a)||a.length<3||a.length>7||!a.every(function(k){return k&&typeof k.code==='string'&&k.code.trim();})){CFG_ERR.push(g);KPIS[g]=[];return;}
-  KPIS[g]=a.map(function(k){return {code:String(k.code).trim(),name:String(k.name||k.code),def:String(k.def||''),theme:String(k.theme||'')};});
+  KPIS[g]=a.map(function(k){return {code:String(k.code).trim(),name:String(k.name||k.code),def:String(k.def||''),theme:String(k.theme||''),parts:(Array.isArray(k.parts)?k.parts:[]).map(function(p){return {label:String(p.label||''),name:String(p.name||''),def:String(p.def||'')};})};});
 });
 const HASH=(location.hash||'').toLowerCase().replace('#','');
 const RESPONDENT=!!SHEET_URL&&HASH!=='admin';
@@ -558,7 +566,7 @@ function renderKpiInfo(){
   let h='<div class="step-h"><div class="n">3</div><h2>'+(tl.length>1?'Form '+(state.tIdx+1)+' of '+tl.length+': ':'')+'The '+k.length+' KPIs used to rate '+who+'</h2></div>';
   h+='<p class="muted">You are rating the '+esc(t)+' KPIs. Read what each one measures, then rank them in the next step.</p><div class="defs">';
   h+=k.map(function(x){
-    return '<div class="def"><div class="def-h"><b>'+esc(x.code)+'</b><span>'+esc(x.name)+'</span>'+(x.theme?'<span class="chip">'+esc(x.theme)+'</span>':'')+'</div>'+(x.def?'<p>'+esc(x.def)+'</p>':'')+'</div>';
+    return '<div class="def"><div class="def-h"><b>'+esc(x.code)+'</b><span>'+esc(x.name)+'</span>'+(x.theme?'<span class="chip">'+esc(x.theme)+'</span>':'')+'</div>'+(x.def?'<p>'+esc(x.def)+'</p>':'')+(x.parts.length?'<div class="sub">'+x.parts.map(function(p){return '<div class="sub-i"><b>'+esc((p.label?p.label+': ':'')+p.name)+'</b><p>'+esc(p.def)+'</p></div>';}).join('')+'</div>':'')+'</div>';
   }).join('');
   h+='</div>';
   $('sK').innerHTML=h;
@@ -741,7 +749,7 @@ function sheetHeader(rec){
 }
 function sheetPayload(rec){
   const row=[rec.id,rec.role,rec.target].concat(rec.pVal,[rec.best,rec.worst],rec.bo,rec.ow,[rec.ranking.join(' > ')],rec.pairs,[rec.mode,rec.tol,rec.at,rec.ref]);
-  return {key:SHEET_KEY,ref:rec.ref,group:rec.tab+TAB_SUFFIX,header:sheetHeader(rec),row:row};
+  return {key:SHEET_KEY,ref:rec.ref,group:rec.tab+tabSuffixFor(rec.target),header:sheetHeader(rec),row:row};
 }
 async function sendToSheet(rec){
   const body=JSON.stringify(sheetPayload(rec));
